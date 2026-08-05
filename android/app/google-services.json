@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "200920654018",
+    "project_id": "motogate-app-47342",
+    "storage_bucket": "motogate-app-47342.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:200920654018:android:62cba1d1c9be010b309b5b",
+        "android_client_info": {
+          "package_name": "com.example.motogate_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8Smd09zdrHgrybZSRmddZN7TNfn8GZNQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

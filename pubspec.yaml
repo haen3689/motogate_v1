@@ -1,0 +1,48 @@
+﻿name: motogate_app
+description: "MotoGate - Vehicle Registration & Services"
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  go_router: ^14.0.0
+  provider: ^6.1.1
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  intl: ^0.19.0
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.0
+  firebase_messaging: ^15.2.0
+  cloud_firestore: ^5.6.0
+  firebase_analytics: ^11.3.0
+  flutter_local_notifications: ^18.0.1
+  dio: ^5.7.0
+  flutter_secure_storage: ^9.2.2
+  image_picker: ^1.1.2
+  shared_preferences: ^2.3.0
+  google_mlkit_text_recognition: ^0.13.1
+  showcaseview: ^5.1.0
+dependency_overrides:
+  http: ^1.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/motogate_logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/motogate_logo.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
