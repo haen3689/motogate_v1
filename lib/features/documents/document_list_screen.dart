@@ -212,19 +212,19 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                       const SizedBox(height: 12),
                       for (final v in _sortedVehicles) ...[
                         _vehicleRegRow(v),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                       ],
                       for (final v in _sortedVehicles) ...[
                         _inspectionRow(v),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                       ],
                       for (final v in _sortedVehicles) ...[
                         _roadTaxRow(v),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                       ],
                       for (final v in _sortedVehicles) ...[
                         _insuranceRow(v),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                       ],
                       if (_vehicles.isEmpty) _emptyVehicles(),
                       const SizedBox(height: 10),
@@ -363,33 +363,33 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         clipBehavior: Clip.antiAlias,
         child: IntrinsicHeight(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            SizedBox(width: 108, child: mock),
+            SizedBox(width: 140, child: mock),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(title,
-                        style: AppTextStyles.titleSmall.copyWith(fontSize: 13, fontWeight: FontWeight.w800)),
+                        style: AppTextStyles.titleSmall.copyWith(fontSize: 17, fontWeight: FontWeight.w800)),
                     if (line1.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(line1, style: AppTextStyles.caption.copyWith(fontSize: 10.5)),
+                      const SizedBox(height: 5),
+                      Text(line1, style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
                     ],
                     if (line2.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(line2, style: AppTextStyles.caption.copyWith(fontSize: 10.5)),
+                      const SizedBox(height: 3),
+                      Text(line2, style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
                     ],
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 7),
                     Text('status: ${_statusLabel(status)}',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: _statusColor(status))),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _statusColor(status))),
                   ],
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(right: 14),
+              padding: const EdgeInsets.only(right: 16),
               child: Center(child: _statusIcon(status)),
             ),
           ]),
@@ -405,10 +405,10 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       _DocStatus.missing => (const Color(0xFFFEF3C7), const Color(0xFFCA8A04), Icons.priority_high),
     };
     return Container(
-      width: 48,
-      height: 48,
+      width: 60,
+      height: 60,
       decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-      child: Icon(icon, color: fg, size: 26),
+      child: Icon(icon, color: fg, size: 32),
     );
   }
 
@@ -427,19 +427,19 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Container(
           color: bandColor,
-          padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
           child: Text(bandLabel,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.w800)),
+              style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w800)),
         ),
         Expanded(
           child: Center(
             child: bigText != null && bigText.isNotEmpty
                 ? Text(bigText,
-                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900))
-                : Icon(icon ?? Icons.description_outlined, color: Colors.white.withValues(alpha: 0.9), size: 26),
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900))
+                : Icon(icon ?? Icons.description_outlined, color: Colors.white.withValues(alpha: 0.9), size: 36),
           ),
         ),
       ]),
