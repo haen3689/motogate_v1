@@ -68,9 +68,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
   String _typeLabel(String? type) => switch (type) {
         'motorcycle' => 'ລົດຈັກ',
         'car' => 'ລົດເກັ່ງ',
-        'suv' => 'SUV',
         'pickup' => 'ລົດກະບະ',
-        'truck' => 'ລົດຈິບ',
+        'suv' => 'ລົດຈິບ',
         'van' => 'ລົດຕູ້',
         'bus' => 'ລົດເມ',
         'towtruck' => 'ລົດລາກ',

@@ -64,12 +64,12 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
   File? _frontImage;
   File? _backImage;
 
+  // Matches the official 8-category vehicle type list.
   static const _types = [
     {'value': 'motorcycle', 'label': 'ລົດຈັກ', 'icon': Icons.motorcycle},
     {'value': 'car', 'label': 'ລົດເກັ່ງ', 'icon': Icons.directions_car},
-    {'value': 'suv', 'label': 'ຈິບ', 'icon': Icons.terrain},
-    {'value': 'pickup', 'label': 'ລົດກະບະ', 'icon': Icons.local_shipping},
-    {'value': 'truck', 'label': 'ລົດຈິບ', 'icon': Icons.directions_car_filled},
+    {'value': 'pickup', 'label': 'ລົດກະບະ', 'icon': Icons.directions_car_filled},
+    {'value': 'suv', 'label': 'ລົດຈິບ', 'icon': Icons.terrain},
     {'value': 'van', 'label': 'ລົດຕູ້', 'icon': Icons.airport_shuttle},
     {'value': 'bus', 'label': 'ລົດເມ', 'icon': Icons.directions_bus},
     {'value': 'towtruck', 'label': 'ລົດລາກ', 'icon': Icons.car_repair},
