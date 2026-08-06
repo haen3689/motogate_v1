@@ -107,6 +107,18 @@ class ApiAuthService {
     return res.data['data']['user'] as Map<String, dynamic>;
   }
 
+  /// Requests a short-lived, single-purpose token for the "QR CODE
+  /// ເອກະສານ" verification page (scanned by a third party, not this
+  /// device) — separate from the long-lived login token. When [vehicleId]
+  /// is given, the resulting verification page is scoped to just that
+  /// vehicle instead of all of the user's vehicles.
+  static Future<Map<String, dynamic>> requestVerifyToken({dynamic vehicleId}) async {
+    final res = await _dio.post('/auth/verify_token', data: {
+      if (vehicleId != null) 'vehicle_id': vehicleId,
+    });
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
   static Future<void> logout() => ApiClient.clearToken();
 
   static String errorMessage(DioException e) {

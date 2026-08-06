@@ -7,6 +7,10 @@ class ApiClient {
     defaultValue: 'http://192.168.100.4:3000/api/v1',
   );
 
+  /// Plain server origin (no `/api/v1` suffix), used to build links like
+  /// the QR-verification page that aren't part of the JSON API.
+  static String get webBaseUrl => _baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+
   static const _storage = FlutterSecureStorage();
   static Dio? _dio;
 

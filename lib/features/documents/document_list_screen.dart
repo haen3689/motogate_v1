@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/services/api_auth_service.dart';
+import '../../core/services/api_client.dart';
 import '../../core/services/api_inspection_service.dart';
 import '../../core/services/api_insurance_service.dart';
 import '../../core/services/api_road_tax_service.dart';
@@ -170,9 +173,46 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     );
   }
 
-  void _showComingSoon() {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('ກຳລັງພັດທະນາ')));
+  /// Requests a fresh short-lived, signed verification link from the
+  /// backend and shows it as a QR. Because the token is signed and
+  /// expires server-side (not just hidden client-side), a screenshotted
+  /// QR stops working on its own — reusing it isn't a matter of the app
+  /// UI, the backend itself will reject it after expiry.
+  Future<void> _showMyQrCode() async {
+    if (_sortedVehicles.isEmpty && _user == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('ຍັງບໍ່ມີຂໍ້ມູນພຽງພໍ ກະລຸນາລອງໃໝ່')));
+      return;
+    }
+    Map<String, dynamic> tokenData;
+    try {
+      tokenData = await ApiAuthService.requestVerifyToken(vehicleId: widget.vehicle?['id']);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e is DioException
+                ? ApiAuthService.errorMessage(e)
+                : 'ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່')));
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    final token = tokenData['token'] as String;
+    final expiresAt = DateTime.parse(tokenData['expires_at'] as String);
+    final url = '${ApiClient.webBaseUrl}/verify/$token';
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => _QrCodeDialog(
+        url: url,
+        expiresAt: expiresAt,
+        phone: _user?['phone_number']?.toString() ?? '',
+        plate: widget.vehicle?['plate_number']?.toString(),
+        onRegenerate: _showMyQrCode,
+      ),
+    );
   }
 
   @override
@@ -447,7 +487,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   }
 
   Widget _qrBanner() => GestureDetector(
-        onTap: _showComingSoon,
+        onTap: _showMyQrCode,
         child: Container(
           height: 78,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -516,4 +556,146 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           ]),
         ),
       );
+}
+
+/// Shows the backend-issued QR with a live countdown to its server-side
+/// expiry. When time runs out the QR is visually blocked and swapped for
+/// a "generate new one" prompt instead of just sitting there scannable.
+class _QrCodeDialog extends StatefulWidget {
+  const _QrCodeDialog({
+    required this.url,
+    required this.expiresAt,
+    required this.phone,
+    this.plate,
+    required this.onRegenerate,
+  });
+
+  final String url;
+  final DateTime expiresAt;
+  final String phone;
+  final String? plate;
+  final Future<void> Function() onRegenerate;
+
+  @override
+  State<_QrCodeDialog> createState() => _QrCodeDialogState();
+}
+
+class _QrCodeDialogState extends State<_QrCodeDialog> {
+  late Timer _timer;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+  }
+
+  void _tick() {
+    final remaining = widget.expiresAt.difference(DateTime.now());
+    if (!mounted) return;
+    setState(() => _remaining = remaining.isNegative ? Duration.zero : remaining);
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  String get _mmss {
+    final m = _remaining.inMinutes;
+    final s = _remaining.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final expired = _remaining == Duration.zero;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(24),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.qr_code_2, color: AppColors.primary, size: 30),
+          const SizedBox(height: 8),
+          Text('QR CODE ເອກະສານ',
+              style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text('ສະແດງໃຫ້ເຈົ້າໜ້າທີ່ສະແກນເພື່ອກວດສອບເອກະສານ',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
+          const SizedBox(height: 20),
+          Stack(alignment: Alignment.center, children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.grey100),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: QrImageView(
+                data: widget.url,
+                version: QrVersions.auto,
+                size: 220,
+                backgroundColor: Colors.white,
+                eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF1A1A1A)),
+                dataModuleStyle:
+                    const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF1A1A1A)),
+              ),
+            ),
+            if (expired)
+              Container(
+                width: 252,
+                height: 252,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.94),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.timer_off_outlined, color: AppColors.grey500, size: 32),
+                    SizedBox(height: 8),
+                    Text('QR ໝົດອາຍຸແລ້ວ',
+                        style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+                  ],
+                ),
+              ),
+          ]),
+          const SizedBox(height: 16),
+          if (!expired)
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.timer_outlined, size: 16, color: AppColors.primary),
+              const SizedBox(width: 4),
+              Text('ໝົດອາຍຸໃນ $_mmss',
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.primaryDark, fontWeight: FontWeight.w700)),
+            ])
+          else
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await widget.onRegenerate();
+              },
+              child: const Text('ສ້າງ QR ໃໝ່',
+                  style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
+            ),
+          const SizedBox(height: 12),
+          Text(widget.phone, style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w700)),
+          if (widget.plate?.isNotEmpty == true) ...[
+            const SizedBox(height: 2),
+            Text('ທະບຽນ: ${widget.plate}',
+                style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
+          ],
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: MgButton(label: 'ປິດ', onPressed: () => Navigator.of(context).pop()),
+          ),
+        ]),
+      ),
+    );
+  }
 }
