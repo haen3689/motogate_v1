@@ -52,8 +52,7 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
     final regFrontUrl = widget.vehicle['registration_front_url']?.toString();
     final regBackUrl = widget.vehicle['registration_back_url']?.toString();
     return [
-      _PhotoTile(label: 'ໃບຂັບຂີ (ໜ້າ)', icon: Icons.badge_outlined, url: licenseUrl),
-      const _PhotoTile(label: 'ໃບຂັບຂີ (ຫຼັງ)', icon: Icons.badge_outlined),
+      _PhotoTile(label: 'ໃບຂັບຂີ', icon: Icons.badge_outlined, url: licenseUrl),
       const _PhotoTile(label: 'ລົດ — ດ້ານໜ້າ', icon: Icons.directions_car_filled_outlined),
       _PhotoTile(label: 'ທະບຽນລົດ', icon: Icons.article_outlined, url: regFrontUrl),
       _PhotoTile(label: 'ປຶ້ມຄູ່ມືລົດ', icon: Icons.menu_book_outlined, url: regBackUrl),
@@ -80,7 +79,6 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
   Widget build(BuildContext context) {
     final tiles = _tiles;
     final photoCount = tiles.where((t) => t.hasPhoto).length;
-    final plate = widget.vehicle['plate_number']?.toString();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -90,14 +88,7 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
               children: [
-                Text('ຮູບພາບທີ່ອັບໂຫລດ',
-                    style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(
-                    '$photoCount ຮູບ — ກົດເພື່ອເບິ່ງເຕັມໜ້າຈໍ'
-                    '${plate?.isNotEmpty == true ? '  ·  ທະບຽນ: $plate' : ''}',
-                    style: AppTextStyles.caption.copyWith(color: AppColors.grey500, fontSize: 12.5)),
-                const SizedBox(height: 16),
+                _progressCard(photoCount, tiles.length),
                 for (var i = 0; i < tiles.length; i += 2) ...[
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Expanded(child: _photoCard(tiles[i])),
@@ -114,6 +105,64 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
     );
   }
 
+  Widget _progressCard(int filled, int total) {
+    final plate = widget.vehicle['plate_number']?.toString();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Row(children: [
+        SizedBox(
+          width: 54,
+          height: 54,
+          child: Stack(alignment: Alignment.center, children: [
+            SizedBox(
+              width: 54,
+              height: 54,
+              child: CircularProgressIndicator(
+                value: total == 0 ? 0 : filled / total,
+                strokeWidth: 5,
+                backgroundColor: AppColors.grey100,
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+              ),
+            ),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: Center(
+                child: Text('$filled/$total',
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ອັບໂຫລດແລ້ວ $filled ຈາກ $total',
+                  style: AppTextStyles.titleSmall.copyWith(fontSize: 14, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(
+                  'ກົດຮູບເພື່ອເບິ່ງເຕັມໜ້າຈໍ'
+                  '${plate?.isNotEmpty == true ? '  ·  ທະບຽນ: $plate' : ''}',
+                  style: AppTextStyles.caption.copyWith(color: AppColors.grey500, fontSize: 12)),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _photoCard(_PhotoTile tile) {
     return GestureDetector(
       onTap: () => _openTile(tile),
@@ -125,19 +174,37 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          AspectRatio(aspectRatio: 189 / 129, child: _thumb(tile)),
+          AspectRatio(aspectRatio: 189 / 118, child: _thumb(tile)),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-            child: Text(tile.label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 12.5, fontWeight: FontWeight.w600)),
+            padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+            child: Row(children: [
+              Expanded(
+                child: Text(tile.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 4),
+              _statusTag(tile.hasPhoto),
+            ]),
           ),
         ]),
       ),
     );
   }
+
+  Widget _statusTag(bool has) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: has ? const Color(0xFFDCFCE7) : AppColors.grey100,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(has ? 'ມີ' : 'ບໍ່ມີ',
+            style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                color: has ? const Color(0xFF16A34A) : AppColors.grey500)),
+      );
 
   Widget _thumb(_PhotoTile tile) {
     if (!tile.hasPhoto) {
