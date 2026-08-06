@@ -32,6 +32,7 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
   final _provinceCtrl = TextEditingController();
   final _ownerNameCtrl = TextEditingController();
   final _seatCountCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
   String? _vehicleType;
   String? _plateType;
   String? _usageType;
@@ -120,6 +121,7 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
     _provinceCtrl.dispose();
     _ownerNameCtrl.dispose();
     _seatCountCtrl.dispose();
+    _weightCtrl.dispose();
     super.dispose();
   }
 
@@ -148,6 +150,7 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
         seatCount: _seatCountCtrl.text.trim(),
         axleCount: _axleCount,
         cylinderCount: _cylinderCount,
+        weight: _weightCtrl.text.trim(),
         registrationExpiryDate: _registrationExpiryDate == null
             ? null
             : '${_registrationExpiryDate!.year.toString().padLeft(4, '0')}-'
@@ -337,6 +340,8 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
             _simpleDropdown('ຈຳນວນສູບ', _cylinderCount, _cylinderCounts,
                 (v) => setState(() => _cylinderCount = v)),
           ),
+          const SizedBox(height: 12),
+          _field('ນ້ຳໜັກລົດ (ຕັນ)', _weightCtrl, 'ເຊັ່ນ: 5', numeric: true),
           const SizedBox(height: 12),
           _row2(
             _field('ເລກຈັກ', _engineCtrl, '0122445M01245', caps: true),

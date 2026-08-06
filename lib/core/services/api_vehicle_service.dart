@@ -30,6 +30,7 @@ class ApiVehicleService {
     String? seatCount,
     String? axleCount,
     String? cylinderCount,
+    String? weight,
     String? registrationExpiryDate,
     File? registrationFront,
     File? registrationBack,
@@ -42,6 +43,7 @@ class ApiVehicleService {
       if (axleCount != null && axleCount.isNotEmpty) 'axle_count': axleCount,
       if (cylinderCount != null && cylinderCount.isNotEmpty)
         'cylinder_count': cylinderCount,
+      if (weight != null && weight.isNotEmpty) 'weight': weight,
       if (registrationExpiryDate != null && registrationExpiryDate.isNotEmpty)
         'registration_expiry_date': registrationExpiryDate,
     };

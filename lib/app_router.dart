@@ -19,6 +19,7 @@ import 'features/insurance/insurance_select_vehicle_screen.dart';
 import 'features/insurance/insurance_company_select_screen.dart';
 import 'features/insurance/insurance_package_list_screen.dart';
 import 'features/insurance/insurance_payment_screen.dart';
+import 'features/insurance/insurance_success_screen.dart';
 import 'features/roadtax/roadtax_select_vehicle_screen.dart';
 import 'features/roadtax/roadtax_select_year_screen.dart';
 import 'features/roadtax/roadtax_confirm_screen.dart';
@@ -82,10 +83,10 @@ class AppRouter {
         final v = s.arguments as Map<String, dynamic>;
         return _r(VehiclePhotosScreen(vehicle: v), s);
       case '/insurance':
-        return _r(const InsuranceSelectVehicleScreen(), s);
-      case '/insurance/companies':
-        final v = s.arguments as Map<String, dynamic>;
-        return _r(InsuranceCompanySelectScreen(vehicle: v), s);
+        return _r(const InsuranceCompanySelectScreen(), s);
+      case '/insurance/vehicle':
+        final company = s.arguments as Map<String, dynamic>;
+        return _r(InsuranceSelectVehicleScreen(company: company), s);
       case '/insurance/packages':
         final args = s.arguments as Map<String, dynamic>;
         return _r(
@@ -105,11 +106,13 @@ class AppRouter {
             ),
             s);
       case '/insurance/success':
-        final args = s.arguments as Map<String, dynamic>?;
+        final args = s.arguments as Map<String, dynamic>;
         return _r(
-            PaymentSuccessScreen(
-              title: args?['title']?.toString() ?? 'ປະກັນໄພ',
-              amount: args?['amount']?.toString() ?? '',
+            InsuranceSuccessScreen(
+              insurance: args['insurance'] as Map<String, dynamic>,
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              company: args['company'] as Map<String, dynamic>,
+              package: args['package'] as Map<String, dynamic>,
             ),
             s);
       case '/roadtax':

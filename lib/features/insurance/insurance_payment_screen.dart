@@ -1,9 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../common/payment_method_screen.dart';
+import '../../core/services/api_client.dart';
 import '../../core/services/api_insurance_service.dart';
 import '../../core/services/api_auth_service.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/widgets/widgets.dart';
+import 'insurance_step_indicator.dart';
 
 final _money = NumberFormat('#,##0');
 
@@ -22,6 +26,14 @@ class InsurancePaymentScreen extends StatefulWidget {
 }
 
 class _InsurancePaymentScreenState extends State<InsurancePaymentScreen> {
+  static const _methods = [
+    {'name': 'LAP NET', 'icon': Icons.account_balance},
+    {'name': 'BCEL ONE', 'icon': Icons.account_balance},
+    {'name': 'APB', 'icon': Icons.account_balance},
+    {'name': 'LDB', 'icon': Icons.account_balance},
+  ];
+
+  int _selectedMethod = -1;
   bool _submitting = false;
 
   num get _price => num.tryParse(widget.package['price']?.toString() ?? '') ?? 0;
@@ -30,14 +42,14 @@ class _InsurancePaymentScreenState extends State<InsurancePaymentScreen> {
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   Future<void> _pay() async {
-    if (_submitting) return;
+    if (_submitting || _selectedMethod < 0) return;
     setState(() => _submitting = true);
     try {
       final vehicleId = int.parse(widget.vehicle['id'].toString());
       final duration = int.tryParse(widget.package['duration_months']?.toString() ?? '') ?? 12;
       final start = DateTime.now();
       final end = DateTime(start.year, start.month + duration, start.day);
-      await ApiInsuranceService.create(
+      final created = await ApiInsuranceService.create(
         vehicleId: vehicleId,
         company: widget.company['name']?.toString() ?? '',
         package: widget.package['name']?.toString() ?? '',
@@ -48,8 +60,10 @@ class _InsurancePaymentScreenState extends State<InsurancePaymentScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/insurance/success', (r) => false, arguments: {
-        'title': '${widget.company['name']} · ${widget.package['name']}',
-        'amount': '${_money.format(_price)} LAK',
+        'insurance': created,
+        'vehicle': widget.vehicle,
+        'company': widget.company,
+        'package': widget.package,
       });
     } catch (e) {
       if (!mounted) return;
@@ -65,11 +79,158 @@ class _InsurancePaymentScreenState extends State<InsurancePaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PaymentMethodScreen(
-      title: 'ຊຳລະຄ່າປະກັນໄພ',
-      amount: '${_money.format(_price)} LAK',
-      description: '${widget.package['name']} · ${widget.company['name']}',
-      onSuccess: _pay,
+    final logoPath = widget.company['logo']?.toString();
+    final logoUrl =
+        logoPath != null && logoPath.isNotEmpty ? '${ApiClient.webBaseUrl}$logoPath' : null;
+    final plate = widget.vehicle['plate_number']?.toString() ?? '—';
+    final brandModel = [widget.vehicle['brand'], widget.vehicle['model']]
+        .where((s) => s != null && s.toString().isNotEmpty)
+        .join(' ');
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: const MgHeader(title: 'ຊຳລະຄ່າປະກັນໄພ'),
+      body: Column(children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      border: Border.all(color: AppColors.primary, width: 1.2),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: logoUrl != null
+                        ? Image.network(logoUrl,
+                            fit: BoxFit.cover, errorBuilder: (_, __, ___) => _logoFallback())
+                        : _logoFallback(),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(widget.company['name']?.toString() ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.titleSmall
+                              .copyWith(fontSize: 14.5, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text(brandModel.isEmpty ? plate : '$plate · $brandModel',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
+                    ]),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              const InsuranceStepIndicator(currentStep: 2),
+              const SizedBox(height: 24),
+              Text('ສະຫຼຸບການສັ່ງຊື້',
+                  style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: AppColors.grey100),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Expanded(
+                      child: Text(widget.package['name']?.toString() ?? '',
+                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
+                    ),
+                    Text('${widget.package['duration_months'] ?? 12} ເດືອນ', style: AppTextStyles.caption),
+                  ]),
+                  const SizedBox(height: 12),
+                  const Divider(color: AppColors.grey100, height: 1),
+                  const SizedBox(height: 12),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    const Text('ຍອດຊຳລະທັງໝົດ', style: AppTextStyles.bodySmall),
+                    Text('${_money.format(_price)} ກີບ',
+                        style: const TextStyle(
+                            color: AppColors.primary, fontSize: 18, fontWeight: FontWeight.w800)),
+                  ]),
+                ]),
+              ),
+              const SizedBox(height: 24),
+              Text('ວິທີການຊຳລະເງິນ',
+                  style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              for (var i = 0; i < _methods.length; i++) ...[
+                _methodTile(i),
+                const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: MgButton(
+              label: 'ຊຳລະເງິນ',
+              isLoading: _submitting,
+              variant: _selectedMethod >= 0 ? MgButtonVariant.primary : MgButtonVariant.disabled,
+              onPressed: _selectedMethod < 0 ? null : _pay,
+            ),
+          ),
+        ),
+      ]),
     );
   }
+
+  Widget _methodTile(int i) {
+    final selected = _selectedMethod == i;
+    final m = _methods[i];
+    return GestureDetector(
+      onTap: () => setState(() => _selectedMethod = i),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primarySurface : Colors.white,
+          border: Border.all(color: selected ? AppColors.primary : AppColors.grey100, width: selected ? 1.6 : 1),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(m['icon'] as IconData, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(m['name'] as String,
+                style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
+          ),
+          Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: selected ? AppColors.primary : AppColors.grey300, size: 20),
+        ]),
+      ),
+    );
+  }
+
+  Widget _logoFallback() => Container(
+        color: AppColors.primarySurface,
+        alignment: Alignment.center,
+        child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 20),
+      );
 }
