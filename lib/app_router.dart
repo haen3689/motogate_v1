@@ -13,6 +13,7 @@ import 'features/vehicle/vehicle_detail_screen.dart';
 import 'features/vehicle/add_vehicle_screen.dart';
 import 'features/vehicle/scan_ocr_screen.dart';
 import 'features/vehicle/vehicle_fee_payment_screen.dart';
+import 'features/vehicle/vehicle_photos_screen.dart';
 import 'features/vehicle/paid_vehicle_picker_screen.dart';
 import 'features/insurance/insurance_select_vehicle_screen.dart';
 import 'features/insurance/insurance_company_select_screen.dart';
@@ -72,6 +73,14 @@ class AppRouter {
         return _r(VehicleFeePaymentScreen(vehicle: v), s);
       case '/vehicle/documents-picker':
         return _r(const PaidVehiclePickerScreen(), s);
+      case '/vehicle/photos-picker':
+        return _r(
+            const PaidVehiclePickerScreen(
+                title: 'ເລືອກລົດເບິ່ງຮູບພາບ', targetRoute: '/vehicle/photos'),
+            s);
+      case '/vehicle/photos':
+        final v = s.arguments as Map<String, dynamic>;
+        return _r(VehiclePhotosScreen(vehicle: v), s);
       case '/insurance':
         return _r(const InsuranceSelectVehicleScreen(), s);
       case '/insurance/companies':

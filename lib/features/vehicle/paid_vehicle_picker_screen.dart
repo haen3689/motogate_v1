@@ -8,10 +8,17 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
 
 /// Lets the user pick one of their fee-paid (fully active/registered)
-/// vehicles, then navigates to the Documents screen scoped to just that
-/// vehicle.
+/// vehicles, then navigates to [targetRoute] (Documents or Photos) scoped
+/// to just that vehicle.
 class PaidVehiclePickerScreen extends StatefulWidget {
-  const PaidVehiclePickerScreen({super.key});
+  const PaidVehiclePickerScreen({
+    super.key,
+    this.title = 'ເລືອກລົດເບິ່ງເອກະສານ',
+    this.targetRoute = '/documents',
+  });
+
+  final String title;
+  final String targetRoute;
 
   @override
   State<PaidVehiclePickerScreen> createState() => _PaidVehiclePickerScreenState();
@@ -61,15 +68,15 @@ class _PaidVehiclePickerScreenState extends State<PaidVehiclePickerScreen> {
         _ => 'ລົດເກັ່ງ',
       };
 
-  void _openDocuments(Map<String, dynamic> vehicle) {
-    Navigator.of(context).pushNamed('/documents', arguments: vehicle);
+  void _openTarget(Map<String, dynamic> vehicle) {
+    Navigator.of(context).pushNamed(widget.targetRoute, arguments: vehicle);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MgHeader(title: 'ເລືອກລົດເບິ່ງເອກະສານ'),
+      appBar: MgHeader(title: widget.title),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
@@ -90,7 +97,7 @@ class _PaidVehiclePickerScreenState extends State<PaidVehiclePickerScreen> {
                             _VehicleCard(
                               vehicle: v,
                               typeLabel: _typeLabel(v['vehicle_type']?.toString()),
-                              onTap: () => _openDocuments(v),
+                              onTap: () => _openTarget(v),
                             ),
                             const SizedBox(height: 12),
                           ],
