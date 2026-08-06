@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io';
+import 'package:flutter/material.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/welcome/welcome_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -20,11 +21,18 @@ import 'features/insurance/insurance_company_select_screen.dart';
 import 'features/insurance/insurance_package_list_screen.dart';
 import 'features/insurance/insurance_payment_screen.dart';
 import 'features/insurance/insurance_success_screen.dart';
-import 'features/roadtax/roadtax_select_vehicle_screen.dart';
+import 'features/roadtax/roadtax_method_screen.dart';
 import 'features/roadtax/roadtax_select_year_screen.dart';
+import 'features/roadtax/roadtax_upload_proof_screen.dart';
+import 'features/roadtax/roadtax_upload_payment_screen.dart';
 import 'features/roadtax/roadtax_confirm_screen.dart';
+import 'features/roadtax/roadtax_payment_screen.dart';
+import 'features/roadtax/roadtax_success_screen.dart';
 import 'features/inspection/inspection_center_list_screen.dart';
+import 'features/inspection/inspection_select_vehicle_screen.dart';
 import 'features/inspection/inspection_booking_screen.dart';
+import 'features/inspection/inspection_payment_screen.dart';
+import 'features/inspection/inspection_success_screen.dart';
 import 'features/services/service_list_screen.dart';
 import 'features/services/service_detail_screen.dart';
 import 'features/services/service_map_screen.dart';
@@ -36,8 +44,6 @@ import 'features/chat/chat_conversation_screen.dart';
 import 'features/notifications/notification_center_screen.dart';
 import 'features/transactions/transaction_detail_screen.dart';
 import 'features/documents/document_list_screen.dart';
-import 'features/common/payment_method_screen.dart';
-import 'features/common/payment_success_screen.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings s) {
@@ -116,28 +122,90 @@ class AppRouter {
             ),
             s);
       case '/roadtax':
-        return _r(const RoadtaxSelectVehicleScreen(), s);
-      case '/roadtax/year':
-        return _r(const RoadtaxSelectYearScreen(), s);
-      case '/roadtax/confirm':
-        return _r(const RoadtaxConfirmScreen(), s);
-      case '/roadtax/payment':
         return _r(
-            PaymentMethodScreen(
-                title: 'Road Tax',
-                amount: '350,000 LAK',
-                description: 'KT 1234',
-                onSuccess: () {}),
+            const PaidVehiclePickerScreen(
+                title: 'ເລືອກລົດເສຍຄ່າທາງ', targetRoute: '/roadtax/method'),
+            s);
+      case '/roadtax/method':
+        final v = s.arguments as Map<String, dynamic>;
+        return _r(RoadtaxMethodScreen(vehicle: v), s);
+      case '/roadtax/year':
+        final v = s.arguments as Map<String, dynamic>;
+        return _r(RoadtaxSelectYearScreen(vehicle: v), s);
+      case '/roadtax/upload':
+        final v = s.arguments as Map<String, dynamic>;
+        return _r(RoadtaxUploadProofScreen(vehicle: v), s);
+      case '/roadtax/upload/payment':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            RoadtaxUploadPaymentScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              taxYear: args['taxYear'] as int,
+              paidAt: args['paidAt'] as DateTime?,
+              expiredAt: args['expiredAt'] as DateTime?,
+              proofImage: args['proofImage'] as File,
+            ),
+            s);
+      case '/roadtax/confirm':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            RoadtaxConfirmScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              taxYear: args['taxYear'] as int,
+              amount: args['amount'] as num,
+            ),
+            s);
+      case '/roadtax/payment':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            RoadtaxPaymentScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              taxYear: args['taxYear'] as int,
+              amount: args['amount'] as num,
+            ),
             s);
       case '/roadtax/success':
+        final args = s.arguments as Map<String, dynamic>;
         return _r(
-            const PaymentSuccessScreen(
-                title: 'Road Tax', amount: '350,000 LAK'),
+            RoadtaxSuccessScreen(
+              roadTax: args['roadTax'] as Map<String, dynamic>,
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+            ),
             s);
       case '/inspection':
         return _r(const InspectionCenterListScreen(), s);
+      case '/inspection/vehicle':
+        final center = s.arguments as Map<String, dynamic>;
+        return _r(InspectionSelectVehicleScreen(center: center), s);
       case '/inspection/booking':
-        return _r(const InspectionBookingScreen(), s);
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            InspectionBookingScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              center: args['center'] as Map<String, dynamic>,
+              services: (args['services'] as List).cast<Map<String, dynamic>>(),
+            ),
+            s);
+      case '/inspection/payment':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            InspectionPaymentScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              center: args['center'] as Map<String, dynamic>,
+              service: args['service'] as Map<String, dynamic>,
+              appointmentAt: args['appointmentAt'] as DateTime,
+            ),
+            s);
+      case '/inspection/success':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            InspectionSuccessScreen(
+              inspection: args['inspection'] as Map<String, dynamic>,
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              center: args['center'] as Map<String, dynamic>,
+              service: args['service'] as Map<String, dynamic>,
+            ),
+            s);
       case '/services/repair':
         return _r(const ServiceListScreen(type: ServiceType.repair), s);
       case '/services/dealer':

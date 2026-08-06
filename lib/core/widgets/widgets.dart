@@ -6,3 +6,4 @@ export 'mg_header.dart';
 export 'mg_bottom_nav.dart';
 export 'mg_toggle.dart';
 export 'mg_service_card.dart';
+export 'mg_plate_badge.dart';

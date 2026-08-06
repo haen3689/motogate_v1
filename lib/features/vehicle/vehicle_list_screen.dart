@@ -5,6 +5,7 @@ import 'package:showcaseview/showcaseview.dart';
 import '../../core/services/api_auth_service.dart';
 import '../../core/services/api_vehicle_service.dart';
 import '../../core/services/coach_mark_tour.dart';
+import '../../core/services/plate_type_cache.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
@@ -250,6 +251,7 @@ class _VehicleCard extends StatelessWidget {
     final year = vehicle['year']?.toString() ?? '';
     final plateNumber = vehicle['plate_number']?.toString();
     final province = vehicle['province']?.toString();
+    final plateType = vehicle['plate_type']?.toString();
     final feePaid = vehicle['fee_paid'] == true;
 
     final metaParts = [
@@ -272,7 +274,7 @@ class _VehicleCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _PlateBox(province: province, plateNumber: plateNumber),
+            _PlateBox(province: province, plateNumber: plateNumber, plateType: plateType),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -348,26 +350,45 @@ class _PayFeeButton extends StatelessWidget {
   }
 }
 
-class _PlateBox extends StatelessWidget {
-  const _PlateBox({required this.province, required this.plateNumber});
+class _PlateBox extends StatefulWidget {
+  const _PlateBox({required this.province, required this.plateNumber, this.plateType});
 
   final String? province;
   final String? plateNumber;
+  final String? plateType;
+
+  @override
+  State<_PlateBox> createState() => _PlateBoxState();
+}
+
+class _PlateBoxState extends State<_PlateBox> {
+  @override
+  void initState() {
+    super.initState();
+    PlateTypeCache.instance.load().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isEmpty = widget.plateNumber == null || widget.plateNumber!.isEmpty;
+    final cache = PlateTypeCache.instance;
+    final bg = isEmpty ? AppColors.primarySurface : cache.bgColor(widget.plateType);
+    final fg = isEmpty ? AppColors.grey500 : cache.fgColor(widget.plateType);
+    final border = isEmpty ? const Color(0xFF1A1A1A) : cache.borderColor(widget.plateType);
+    final showProvince = cache.showProvince(widget.plateType);
+
     return Container(
       width: 150,
       height: 88,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: plateNumber == null || plateNumber!.isEmpty
-            ? AppColors.primarySurface
-            : const Color(0xFFFFD600),
-        border: Border.all(color: const Color(0xFF1A1A1A), width: 2),
+        color: bg,
+        border: Border.all(color: border, width: 2),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: plateNumber == null || plateNumber!.isEmpty
+      child: isEmpty
           ? const Text(
               'ຍັງບໍ່ມີທະບຽນ',
               textAlign: TextAlign.center,
@@ -377,18 +398,20 @@ class _PlateBox extends StatelessWidget {
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (province != null && province!.isNotEmpty)
+                if (showProvince && widget.province != null && widget.province!.isNotEmpty)
                   Text(
-                    province!,
+                    widget.province!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Color(0xFF1A1A1A), fontSize: 11, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 const SizedBox(height: 4),
                 Text(
-                  plateNumber!,
-                  style: const TextStyle(
-                      color: Color(0xFF1A1A1A), fontSize: 24, fontWeight: FontWeight.bold),
+                  widget.plateNumber!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: fg, fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

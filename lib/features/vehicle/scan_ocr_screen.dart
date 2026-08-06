@@ -29,12 +29,12 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
   final _engineCtrl = TextEditingController();
   final _chassisCtrl = TextEditingController();
   final _ccCtrl = TextEditingController();
-  final _provinceCtrl = TextEditingController();
   final _ownerNameCtrl = TextEditingController();
   final _seatCountCtrl = TextEditingController();
   final _weightCtrl = TextEditingController();
   String? _vehicleType;
   String? _plateType;
+  String? _province;
   String? _usageType;
   String? _fuelType;
   String? _axleCount;
@@ -42,6 +42,26 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
   DateTime? _registrationExpiryDate;
   List<PlateTypeModel> _plateTypes = [];
 
+  static const _provinces = [
+    'ນະຄອນຫຼວງວຽງຈັນ',
+    'ຜົ້ງສາລີ',
+    'ຫຼວງນ້ຳທາ',
+    'ອຸດົມໄຊ',
+    'ບໍ່ແກ້ວ',
+    'ຫຼວງພະບາງ',
+    'ຫົວພັນ',
+    'ໄຊຍະບູລີ',
+    'ຊຽງຂວາງ',
+    'ວຽງຈັນ',
+    'ບໍລິຄຳໄຊ',
+    'ຄຳມ່ວນ',
+    'ສະຫວັນນະເຂດ',
+    'ສາລະວັນ',
+    'ເຊກອງ',
+    'ຈຳປາສັກ',
+    'ອັດຕະປື',
+    'ໄຊສົມບູນ',
+  ];
   static const _usageTypes = ['ນຳໃຊ້ສ່ວນຕົວ', 'ນຳໃຊ້ທຸລະກິດ'];
   static const _fuelTypes = ['ແອັດຊັງ', 'ກາຊ່ວນ', 'ໄຟຟ້າ'];
   static const _axleCounts = [
@@ -118,7 +138,6 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
     _engineCtrl.dispose();
     _chassisCtrl.dispose();
     _ccCtrl.dispose();
-    _provinceCtrl.dispose();
     _ownerNameCtrl.dispose();
     _seatCountCtrl.dispose();
     _weightCtrl.dispose();
@@ -142,7 +161,7 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
         engineNumber: _engineCtrl.text.trim(),
         chassisNumber: _chassisCtrl.text.trim(),
         cc: _ccCtrl.text.trim(),
-        province: _provinceCtrl.text.trim(),
+        province: _province,
         plateType: _plateType,
         usageType: _usageType,
         ownerName: _ownerNameCtrl.text.trim(),
@@ -228,9 +247,7 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
                 child: Column(children: [
                   if (showProv)
                     Text(
-                      _provinceCtrl.text.isNotEmpty
-                          ? _provinceCtrl.text
-                          : 'ນະຄອນຫຼວງວຽງຈັນ',
+                      _province ?? 'ນະຄອນຫຼວງວຽງຈັນ',
                       style: TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w700, color: fg),
                     ),
@@ -281,7 +298,8 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
           ),
           const SizedBox(height: 12),
           _row2(
-            _field('ແຂວງ', _provinceCtrl, 'ນະຄອນຫຼວງວຽງຈັນ'),
+            _simpleDropdown('ແຂວງ', _province, _provinces,
+                (v) => setState(() => _province = v)),
             _field(
                 'ຊື່ເຈົ້າຂອງລົດ (ຕາມທະບຽນ)', _ownerNameCtrl, 'ຊື່ຕາມປື້ມທະບຽນ'),
           ),

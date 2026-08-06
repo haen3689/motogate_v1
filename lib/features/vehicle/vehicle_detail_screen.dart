@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/services/plate_type_cache.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
@@ -48,25 +49,10 @@ class VehicleDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-                decoration: BoxDecoration(
-                  color: plateNumber == null || plateNumber.isEmpty
-                      ? AppColors.primarySurface
-                      : const Color(0xFFFFD600),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF1A1A1A), width: 2),
-                ),
-                child: Column(children: [
-                  if (vehicle['province']?.toString().isNotEmpty == true)
-                    Text(vehicle['province'].toString(),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Text(
-                    plateNumber?.isNotEmpty == true ? plateNumber! : 'ຍັງບໍ່ມີທະບຽນ',
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
-                  ),
-                ]),
+              child: _VehicleDetailPlateBox(
+                plateNumber: plateNumber,
+                province: vehicle['province']?.toString(),
+                plateType: vehicle['plate_type']?.toString(),
               ),
             ),
             const SizedBox(height: 20),
@@ -185,6 +171,64 @@ class VehicleDetailScreen extends StatelessWidget {
           Expanded(flex: 3, child: Text(value, style: AppTextStyles.bodyMedium)),
         ],
       ),
+    );
+  }
+}
+
+class _VehicleDetailPlateBox extends StatefulWidget {
+  const _VehicleDetailPlateBox({required this.plateNumber, this.province, this.plateType});
+
+  final String? plateNumber;
+  final String? province;
+  final String? plateType;
+
+  @override
+  State<_VehicleDetailPlateBox> createState() => _VehicleDetailPlateBoxState();
+}
+
+class _VehicleDetailPlateBoxState extends State<_VehicleDetailPlateBox> {
+  @override
+  void initState() {
+    super.initState();
+    PlateTypeCache.instance.load().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmpty = widget.plateNumber == null || widget.plateNumber!.isEmpty;
+    final cache = PlateTypeCache.instance;
+    final bg = isEmpty ? AppColors.primarySurface : cache.bgColor(widget.plateType);
+    final fg = isEmpty ? AppColors.black : cache.fgColor(widget.plateType);
+    final border = isEmpty ? const Color(0xFF1A1A1A) : cache.borderColor(widget.plateType);
+    final showProvince = cache.showProvince(widget.plateType);
+
+    return Container(
+      width: 150,
+      height: 88,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border, width: 2),
+      ),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+        if (!isEmpty && showProvince && widget.province != null && widget.province!.isNotEmpty)
+          Text(widget.province!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        Text(
+          isEmpty ? 'ຍັງບໍ່ມີທະບຽນ' : widget.plateNumber!,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: fg, fontSize: 26, fontWeight: FontWeight.w900),
+        ),
+      ]),
     );
   }
 }
