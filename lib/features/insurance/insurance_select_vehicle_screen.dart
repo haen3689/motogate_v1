@@ -107,7 +107,7 @@ class _InsuranceSelectVehicleScreenState extends State<InsuranceSelectVehicleScr
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
-              ? _message(_error!, retry: _load)
+              ? _message(_error!, retry: _load, icon: Icons.error_outline)
               : Column(children: [
                   Expanded(
                     child: ListView(
@@ -149,9 +149,21 @@ class _InsuranceSelectVehicleScreenState extends State<InsuranceSelectVehicleScr
                             ),
                             GestureDetector(
                               onTap: () => Navigator.of(context).pop(),
-                              child: Text('ປ່ຽນ',
-                                  style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12)),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.primary),
+                                ),
+                                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.swap_horiz, color: AppColors.primary, size: 13),
+                                  SizedBox(width: 3),
+                                  Text('ປ່ຽນ',
+                                      style: TextStyle(
+                                          color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w700)),
+                                ]),
+                              ),
                             ),
                           ]),
                         ),
@@ -285,10 +297,12 @@ class _InsuranceSelectVehicleScreenState extends State<InsuranceSelectVehicleScr
         child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 20),
       );
 
-  Widget _message(String text, {VoidCallback? retry}) => Center(
+  Widget _message(String text, {VoidCallback? retry, IconData icon = Icons.info_outline}) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: AppColors.grey300, size: 40),
+            const SizedBox(height: 12),
             Text(text, style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
             if (retry != null) ...[
               const SizedBox(height: 16),

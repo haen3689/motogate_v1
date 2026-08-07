@@ -1,46 +1,59 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 
-/// ຂັ້ນຕອນອັບໂຫລດຄ່າທາງ: 0=ເລືອກລົດ, 1=ອັບໂຫລດ, 2=ຢືນຢັນ
+/// ຂັ້ນຕອນຄ່າທາງ — ໃຊ້ຮູບແບບດຽວກັນກັບ InsuranceStepIndicator (ຈຸດ + ເສັ້ນເຊື່ອມ)
+/// ເພື່ອໃຫ້ທັງສອງເສັ້ນທາງ (ອັບໂຫລດຫຼັກຖານ / ຈ່າຍໃນແອບ) ມີນ້ຳໜັກສາຍຕາຄືກັນ.
 class RoadtaxStepIndicator extends StatelessWidget {
   final int currentStep;
-  const RoadtaxStepIndicator({super.key, required this.currentStep});
-
-  static const _labels = ['ເລືອກລົດ', 'ອັບໂຫລດ', 'ຢືນຢັນ'];
+  final List<String> labels;
+  const RoadtaxStepIndicator({
+    super.key,
+    required this.currentStep,
+    this.labels = const ['ເລືອກລົດ', 'ອັບໂຫລດ', 'ຢືນຢັນ'],
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: List.generate(_labels.length, (i) {
-        final done = i < currentStep;
-        final active = i == currentStep;
-        return Expanded(
-          child: Container(
-            margin: EdgeInsets.only(right: i == _labels.length - 1 ? 0 : 8),
-            padding: const EdgeInsets.symmetric(vertical: 7),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: done
-                  ? AppColors.successLight
-                  : active
-                      ? AppColors.primary
-                      : AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(9),
+      children: List.generate(labels.length * 2 - 1, (i) {
+        if (i.isOdd) {
+          final leftStep = i ~/ 2;
+          final done = leftStep < currentStep;
+          return Expanded(
+            child: Container(
+              height: 2,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              color: done ? AppColors.primary : AppColors.grey100,
             ),
-            child: Text(
-              done ? '✓ ${_labels[i]}' : (active ? '${i + 1} ${_labels[i]}' : '${i + 1} ${_labels[i]}'),
-              style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  color: done
-                      ? AppColors.success
-                      : active
-                          ? Colors.white
-                          : AppColors.grey500),
-            ),
-          ),
-        );
+          );
+        }
+        final step = i ~/ 2;
+        final done = step < currentStep;
+        final active = step == currentStep;
+        return _pill(step + 1, labels[step], done: done, active: active);
       }),
     );
+  }
+
+  Widget _pill(int number, String label, {required bool done, required bool active}) {
+    final bg = done || active ? AppColors.primary : AppColors.grey100;
+    final fg = done || active ? AppColors.white : AppColors.grey500;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 26,
+        height: 26,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+        child: done
+            ? const Icon(Icons.check, color: AppColors.white, size: 15)
+            : Text('$number', style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w800)),
+      ),
+      const SizedBox(height: 4),
+      Text(label,
+          style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+              color: active ? AppColors.primary : (done ? AppColors.black : AppColors.grey500))),
+    ]);
   }
 }

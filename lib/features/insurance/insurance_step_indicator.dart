@@ -11,15 +11,19 @@ class InsuranceStepIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: List.generate(_labels.length * 2 - 1, (i) {
         if (i.isOdd) {
           final leftStep = i ~/ 2;
           final done = leftStep < currentStep;
           return Expanded(
-            child: Container(
-              height: 2,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              color: done ? AppColors.primary : AppColors.grey100,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                color: done ? AppColors.primary : AppColors.grey100,
+              ),
             ),
           );
         }

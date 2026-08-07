@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.100.8:3000/api/v1',
+    defaultValue: 'http://192.168.100.4:3000/api/v1',
   );
 
   /// Plain server origin (no `/api/v1` suffix), used to build links like

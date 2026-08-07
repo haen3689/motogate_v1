@@ -78,9 +78,9 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
-              ? _message(_error!, retry: _load)
+              ? _message(_error!, retry: _load, icon: Icons.error_outline)
               : _companies.isEmpty
-                  ? _message('ບໍ່ພົບບໍລິສັດປະກັນໄພ', retry: _load)
+                  ? _message('ບໍ່ພົບບໍລິສັດປະກັນໄພ', retry: _load, icon: Icons.business_outlined)
                   : Column(children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(22, 20, 22, 12),
@@ -100,7 +100,7 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
                       ),
                       Expanded(
                         child: companies.isEmpty
-                            ? _message('ບໍ່ພົບບໍລິສັດທີ່ຄົ້ນຫາ')
+                            ? _message('ບໍ່ພົບບໍລິສັດທີ່ຄົ້ນຫາ', icon: Icons.search_off)
                             : RefreshIndicator(
                                 color: AppColors.primary,
                                 onRefresh: _load,
@@ -193,10 +193,12 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
         child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 26),
       );
 
-  Widget _message(String text, {VoidCallback? retry}) => Center(
+  Widget _message(String text, {VoidCallback? retry, IconData icon = Icons.info_outline}) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: AppColors.grey300, size: 40),
+            const SizedBox(height: 12),
             Text(text, style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
             if (retry != null) ...[
               const SizedBox(height: 16),

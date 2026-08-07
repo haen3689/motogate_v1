@@ -170,65 +170,84 @@ class _InspectionBookingScreenState extends State<InspectionBookingScreen> {
                       const SizedBox(height: 10),
                     ],
                     const SizedBox(height: 20),
-                    Text('ເລືອກວັນທີ',
+                    Text('ນັດໝາຍວັນ ແລະ ເວລາ',
                         style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () async {
-                        final d = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now().add(const Duration(days: 1)),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 90)),
-                        );
-                        if (d != null) setState(() => _date = d);
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: _date != null ? AppColors.primary : AppColors.grey100),
-                        ),
-                        child: Row(children: [
-                          const Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                              _date != null
-                                  ? '${_date!.day}/${_date!.month}/${_date!.year}'
-                                  : 'ເລືອກວັນທີ',
-                              style: AppTextStyles.bodyMedium),
-                        ]),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: AppColors.grey100),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text('ເລືອກເວລາ',
-                        style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: List.generate(
-                        _times.length,
-                        (i) => GestureDetector(
-                          onTap: () => setState(() => _timeIndex = i),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('ວັນທີ', style: AppTextStyles.labelMedium),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            final d = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now().add(const Duration(days: 1)),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 90)),
+                            );
+                            if (d != null) setState(() => _date = d);
+                          },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: _timeIndex == i ? AppColors.primary : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
+                              color: _date != null ? AppColors.primarySurface : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: _timeIndex == i ? AppColors.primary : AppColors.grey100),
+                                  color: _date != null ? AppColors.primary : AppColors.grey100,
+                                  width: _date != null ? 1.6 : 1),
                             ),
-                            child: Text(_times[i],
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: _timeIndex == i ? AppColors.white : AppColors.black)),
+                            child: Row(children: [
+                              const Icon(Icons.calendar_today, color: AppColors.primary, size: 18),
+                              const SizedBox(width: 10),
+                              Text(
+                                  _date != null
+                                      ? '${_date!.day}/${_date!.month}/${_date!.year}'
+                                      : 'ເລືອກວັນທີ',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: _date != null ? FontWeight.w700 : FontWeight.w400)),
+                              const Spacer(),
+                              const Icon(Icons.chevron_right, color: AppColors.grey300, size: 18),
+                            ]),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        const Divider(color: AppColors.grey100, height: 1),
+                        const SizedBox(height: 16),
+                        const Text('ເວລາ', style: AppTextStyles.labelMedium),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: List.generate(
+                            _times.length,
+                            (i) => GestureDetector(
+                              onTap: () => setState(() => _timeIndex = i),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                                decoration: BoxDecoration(
+                                  color: _timeIndex == i ? AppColors.primary : Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: _timeIndex == i ? AppColors.primary : AppColors.grey100),
+                                ),
+                                child: Text(_times[i],
+                                    style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: _timeIndex == i ? AppColors.white : AppColors.black)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ]),
                     ),
                   ],
                 ),

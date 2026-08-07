@@ -6,6 +6,7 @@ import '../../core/services/api_auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
+import 'roadtax_step_indicator.dart';
 
 final _money = NumberFormat('#,##0');
 
@@ -76,22 +77,39 @@ class _RoadtaxPaymentScreenState extends State<RoadtaxPaymentScreen> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(children: [
+                  MgPlateBadge(plateNumber: plate, province: province, plateType: plateType),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('ຄ່າທາງປີ ${widget.taxYear}',
+                        style: AppTextStyles.bodySmall),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              const RoadtaxStepIndicator(currentStep: 2, labels: ['ເລືອກປີ', 'ຢືນຢັນ', 'ຊຳລະເງິນ']),
+              const SizedBox(height: 24),
+              Text('ສະຫຼຸບຍອດຊຳລະ',
+                  style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: AppColors.grey100),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Column(children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    MgPlateBadge(plateNumber: plate, province: province, plateType: plateType),
-                    const SizedBox(width: 10),
-                    Text('ປີ ${widget.taxYear}',
-                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
-                  ]),
-                  const SizedBox(height: 8),
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  const Text('ຍອດຊຳລະທັງໝົດ', style: AppTextStyles.bodySmall),
                   Text('${_money.format(widget.amount)} ກີບ',
                       style: const TextStyle(
-                          color: AppColors.primary, fontSize: 22, fontWeight: FontWeight.w800)),
+                          color: AppColors.primary, fontSize: 18, fontWeight: FontWeight.w800)),
                 ]),
               ),
               const SizedBox(height: 24),

@@ -121,8 +121,6 @@ class _RoadtaxUploadPaymentScreenState extends State<RoadtaxUploadPaymentScreen>
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
                       children: [
-                        const RoadtaxStepIndicator(currentStep: 2),
-                        const SizedBox(height: 18),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
@@ -146,6 +144,8 @@ class _RoadtaxUploadPaymentScreenState extends State<RoadtaxUploadPaymentScreen>
                                     color: AppColors.primary, fontSize: 22, fontWeight: FontWeight.w800)),
                           ]),
                         ),
+                        const SizedBox(height: 20),
+                        const RoadtaxStepIndicator(currentStep: 2),
                         const SizedBox(height: 24),
                         Text('ວິທີການຊຳລະເງິນ',
                             style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),

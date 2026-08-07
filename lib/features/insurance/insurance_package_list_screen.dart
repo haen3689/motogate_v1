@@ -98,8 +98,7 @@ class _InsurancePackageListScreenState extends State<InsurancePackageListScreen>
       backgroundColor: AppColors.background,
       appBar: const MgHeader(title: 'ປະກັນໄພພາຫະນະ'),
       body: sorted.isEmpty
-          ? const Center(
-              child: Text('ບໍ່ມີແພັກເກັດສຳລັບລົດນີ້', style: AppTextStyles.bodySmall))
+          ? _emptyState()
           : Column(children: [
               Expanded(
                 child: ListView(
@@ -168,7 +167,7 @@ class _InsurancePackageListScreenState extends State<InsurancePackageListScreen>
                       const SizedBox(height: 12),
                       Text('ກ່ຽວກັບບໍລິສັດ',
                           style:
-                              AppTextStyles.titleSmall.copyWith(fontSize: 14, fontWeight: FontWeight.w800)),
+                              AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
                       const SizedBox(height: 10),
                       Container(
                         width: double.infinity,
@@ -211,6 +210,18 @@ class _InsurancePackageListScreenState extends State<InsurancePackageListScreen>
         color: AppColors.primarySurface,
         alignment: Alignment.center,
         child: const Icon(Icons.shield_outlined, color: AppColors.primary, size: 20),
+      );
+
+  Widget _emptyState() => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.inventory_2_outlined, color: AppColors.grey300, size: 40),
+            SizedBox(height: 12),
+            Text('ບໍ່ມີແພັກເກັດສຳລັບລົດນີ້',
+                style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
+          ]),
+        ),
       );
 
   Widget _packageCard(Map<String, dynamic> p) {

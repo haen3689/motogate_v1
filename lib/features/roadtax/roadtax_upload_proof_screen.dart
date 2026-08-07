@@ -170,17 +170,14 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
       body: Column(children: [
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
             children: [
-              const RoadtaxStepIndicator(currentStep: 1),
-              const SizedBox(height: 16),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: AppColors.primarySurface,
-                  border: Border.all(color: AppColors.primaryLight),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(children: [
                   MgPlateBadge(plateNumber: plate, province: province, plateType: plateType),
@@ -194,7 +191,9 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
                   ),
                 ]),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
+              const RoadtaxStepIndicator(currentStep: 1),
+              const SizedBox(height: 24),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
@@ -324,7 +323,7 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
           padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
           child: SizedBox(
             width: double.infinity,
-            height: 54,
+            height: 56,
             child: MgButton(
               label: 'ຖັດໄປ → ຊຳລະ ແລະ ຢືນຢັນ',
               variant: _valid ? MgButtonVariant.primary : MgButtonVariant.disabled,

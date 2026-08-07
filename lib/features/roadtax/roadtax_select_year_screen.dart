@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/api_road_tax_service.dart';
 import '../../core/services/api_auth_service.dart';
-import '../../core/services/plate_type_cache.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
+import 'roadtax_step_indicator.dart';
 
 final _money = NumberFormat('#,##0');
+const _yearStepLabels = ['ເລືອກປີ', 'ຢືນຢັນ', 'ຊຳລະເງິນ'];
 
 class RoadtaxSelectYearScreen extends StatefulWidget {
   final Map<String, dynamic> vehicle;
@@ -55,14 +56,28 @@ class _RoadtaxSelectYearScreenState extends State<RoadtaxSelectYearScreen> {
 
   num get _price => num.tryParse(_rate?['price']?.toString() ?? '') ?? 0;
 
+  String _typeLabel(String? type) => switch (type) {
+        'motorcycle' => 'ລົດຈັກ',
+        'car' => 'ລົດເກັ່ງ',
+        'pickup' => 'ລົດກະບະ',
+        'suv' => 'ລົດຈິບ',
+        'van' => 'ລົດຕູ້',
+        'bus' => 'ລົດເມ',
+        'towtruck' => 'ລົດລາກ',
+        'trailer' => 'ລົດພ່ວງ',
+        _ => 'ລົດເກັ່ງ',
+      };
+
   @override
   Widget build(BuildContext context) {
     final plate = widget.vehicle['plate_number']?.toString() ?? '—';
     final province = widget.vehicle['province']?.toString();
     final plateType = widget.vehicle['plate_type']?.toString();
-    final showProvince = PlateTypeCache.instance.showProvince(plateType);
-    final plateLabel =
-        showProvince && province != null && province.isNotEmpty ? '$province $plate' : plate;
+    final brandModel = [widget.vehicle['brand'], widget.vehicle['model']]
+        .where((s) => s != null && s.toString().isNotEmpty)
+        .join(' ');
+    final type = _typeLabel(widget.vehicle['vehicle_type']?.toString());
+    final vehicleLabel = brandModel.isEmpty ? type : '$brandModel · $type';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -76,12 +91,33 @@ class _RoadtaxSelectYearScreenState extends State<RoadtaxSelectYearScreen> {
                   : Column(children: [
                       Expanded(
                         child: ListView(
-                          padding: const EdgeInsets.all(22),
+                          padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
                           children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySurface,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(children: [
+                                MgPlateBadge(plateNumber: plate, province: province, plateType: plateType),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(vehicleLabel,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTextStyles.bodySmall),
+                                ),
+                              ]),
+                            ),
+                            const SizedBox(height: 20),
+                            const RoadtaxStepIndicator(currentStep: 0, labels: _yearStepLabels),
+                            const SizedBox(height: 24),
                             Text('ເລືອກປີພາສີ',
                                 style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
                             const SizedBox(height: 4),
-                            Text('ສຳລັບລົດ $plateLabel',
+                            Text('ເລືອກປີທີ່ທ່ານຕ້ອງການເສຍຄ່າທາງ',
                                 style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
                             const SizedBox(height: 16),
                             Row(
