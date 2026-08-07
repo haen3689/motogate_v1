@@ -35,7 +35,8 @@ class _InspectionSelectVehicleScreenState extends State<InspectionSelectVehicleS
     });
     try {
       final list = await ApiVehicleService.list();
-      if (mounted) setState(() => _vehicles = list);
+      final paid = list.where((v) => v['fee_paid'] == true).toList();
+      if (mounted) setState(() => _vehicles = paid);
     } catch (e) {
       if (mounted) {
         setState(() => _error =
@@ -270,10 +271,10 @@ class _InspectionSelectVehicleScreenState extends State<InspectionSelectVehicleS
         child: const Column(children: [
           Icon(Icons.directions_car_outlined, color: AppColors.grey300, size: 36),
           SizedBox(height: 12),
-          Text('ຍັງບໍ່ມີລົດທີ່ລົງທະບຽນ',
+          Text('ຍັງບໍ່ມີລົດທີ່ຊຳລະຄ່າທຳນຽມແລ້ວ',
               style: AppTextStyles.titleSmall, textAlign: TextAlign.center),
           SizedBox(height: 6),
-          Text('ກະລຸນາລົງທະບຽນລົດຂອງທ່ານກ່ອນ ຈຶ່ງຈະສາມາດຈອງກວດສະພາບໄດ້',
+          Text('ກະລຸນາຊຳລະຄ່າທຳນຽມລົງທະບຽນລົດຂອງທ່ານກ່ອນ ຈຶ່ງຈະສາມາດຈອງກວດສະພາບໄດ້',
               style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
         ]),
       );
