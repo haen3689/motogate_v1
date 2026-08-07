@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -18,11 +20,14 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
   bool _loading = true;
   String? _error;
   String _query = '';
+  double? _userLat;
+  double? _userLng;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _locateUser();
   }
 
   Future<void> _load() async {
@@ -33,7 +38,7 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
     try {
       final list = await ApiInspectionService.centers();
       final active = list.where((c) => c['status']?.toString() != 'inactive').toList();
-      if (mounted) setState(() => _centers = active);
+      if (mounted) setState(() => _centers = _sorted(active));
     } catch (e) {
       if (mounted) {
         setState(() => _error =
@@ -41,6 +46,71 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  /// ຂໍຕຳແໜ່ງປັດຈຸບັນຂອງຜູ້ໃຊ້ແບບ best-effort — ຖ້າບໍ່ໄດ້ຮັບອະນຸຍາດ ຫຼື ປິດ location
+  /// ໜ້າຈໍນີ້ຍັງໃຊ້ງານໄດ້ປົກກະຕິ, ພຽງແຕ່ບໍ່ສະແດງໄລຍະທາງ/ຈັດຮຽງເທົ່ານັ້ນ.
+  Future<void> _locateUser() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+      );
+      if (!mounted) return;
+      setState(() {
+        _userLat = pos.latitude;
+        _userLng = pos.longitude;
+        _centers = _sorted(_centers);
+      });
+    } catch (_) {
+      // ບໍ່ສາມາດຂໍຕຳແໜ່ງໄດ້ — ຂ້າມໄປ, ບໍ່ສະແດງ error ໃຫ້ຜູ້ໃຊ້
+    }
+  }
+
+  /// ໄລຍະທາງຈາກຜູ້ໃຊ້ໄປສູນ (km) — null ຖ້າບໍ່ມີພິກັດຂອງຜູ້ໃຊ້ ຫຼື ຂອງສູນ
+  double? _distanceTo(Map<String, dynamic> center) {
+    final lat = num.tryParse(center['latitude']?.toString() ?? '');
+    final lng = num.tryParse(center['longitude']?.toString() ?? '');
+    if (_userLat == null || _userLng == null || lat == null || lng == null) return null;
+    return ApiInspectionService.distanceKm(_userLat!, _userLng!, lat.toDouble(), lng.toDouble());
+  }
+
+  /// ຈັດຮຽງໃກ້ສຸດກ່ອນ — ສູນທີ່ບໍ່ມີພິກັດ (ຫຼື ບໍ່ຮູ້ຕຳແໜ່ງຜູ້ໃຊ້) ຈະຢູ່ທ້າຍລາຍການ
+  List<Map<String, dynamic>> _sorted(List<Map<String, dynamic>> list) {
+    if (_userLat == null || _userLng == null) return list;
+    final withDist = <MapEntry<Map<String, dynamic>, double?>>[
+      for (final c in list) MapEntry(c, _distanceTo(c)),
+    ];
+    withDist.sort((a, b) {
+      if (a.value == null && b.value == null) return 0;
+      if (a.value == null) return 1;
+      if (b.value == null) return -1;
+      return a.value!.compareTo(b.value!);
+    });
+    return withDist.map((e) => e.key).toList();
+  }
+
+  Future<void> _openInMaps(double lat, double lng) async {
+    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('ບໍ່ສາມາດເປີດແຜນທີ່ໄດ້'),
+          backgroundColor: AppColors.error,
+        ));
+      }
     }
   }
 
@@ -111,6 +181,10 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
         .cast<Map<String, dynamic>>()
         .where((svc) => svc['status']?.toString() == 'active')
         .length;
+    final lat = num.tryParse(center['latitude']?.toString() ?? '');
+    final lng = num.tryParse(center['longitude']?.toString() ?? '');
+    final hasCoords = lat != null && lng != null;
+    final distance = _distanceTo(center);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).pushNamed('/inspection/vehicle', arguments: center),
@@ -163,9 +237,33 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
                   ),
                 ],
               ]),
+              if (distance != null) ...[
+                const SizedBox(height: 6),
+                Row(children: [
+                  const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 13),
+                  const SizedBox(width: 3),
+                  Text('ຫ່າງຈາກທ່ານ ${distance.toStringAsFixed(1)} km',
+                      style: AppTextStyles.caption
+                          .copyWith(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.grey600)),
+                ]),
+              ],
             ]),
           ),
           const SizedBox(width: 6),
+          if (hasCoords)
+            GestureDetector(
+              onTap: () => _openInMaps(lat.toDouble(), lng.toDouble()),
+              child: Container(
+                width: 32,
+                height: 32,
+                margin: const EdgeInsets.only(right: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySurface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.map_outlined, color: AppColors.primary, size: 17),
+              ),
+            ),
           const Icon(Icons.chevron_right, color: AppColors.grey300, size: 22),
         ]),
       ),

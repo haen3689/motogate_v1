@@ -1,4 +1,4 @@
-﻿name: motogate_app
+name: motogate_app
 description: "MotoGate - Vehicle Registration & Services"
 publish_to: 'none'
 version: 1.0.0+1
@@ -28,6 +28,8 @@ dependencies:
   google_mlkit_text_recognition: ^0.13.1
   showcaseview: ^5.1.0
   qr_flutter: ^4.1.0
+  geolocator: ^14.0.2
+  url_launcher: ^6.3.2
 dependency_overrides:
   http: ^1.2.0
 

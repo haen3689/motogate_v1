@@ -1,7 +1,21 @@
+import 'dart:math';
 import 'api_client.dart';
 
 class ApiInspectionService {
   static final _dio = ApiClient.instance;
+
+  /// ຄິດໄລ່ໄລຍະທາງລະຫວ່າງ 2 ຈຸດ (ຫົວໜ່ວຍ: ກິໂລແມັດ) ດ້ວຍສູດ Haversine
+  static double distanceKm(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0; // Earth radius km
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLng = _deg2rad(lng2 - lng1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * sin(dLng / 2) * sin(dLng / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return r * c;
+  }
+
+  static double _deg2rad(double deg) => deg * (pi / 180);
 
   static Future<List<Map<String, dynamic>>> list() async {
     final res = await _dio.get('/inspections');
