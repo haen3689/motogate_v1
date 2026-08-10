@@ -18,9 +18,9 @@ class MgPlateBadge extends StatefulWidget {
     required this.plateNumber,
     this.province,
     this.plateType,
-    this.fontSize = 12,
-    this.width = 78,
-    this.height = 44,
+    this.fontSize = 14,
+    this.width = 92,
+    this.height = 52,
   });
 
   @override

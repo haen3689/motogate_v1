@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'api_client.dart';
 
 class ApiInsuranceService {
@@ -35,6 +37,15 @@ class ApiInsuranceService {
       if (startDate != null) 'start_date': startDate,
       if (endDate != null) 'end_date': endDate,
     });
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
+  /// Attaches a photo of the physical policy document to an insurance the
+  /// user already has on file — used by the ຮູບພາບ gallery.
+  static Future<Map<String, dynamic>> uploadDocument(dynamic insuranceId, File photo) async {
+    final form = FormData.fromMap({'document_image': await MultipartFile.fromFile(photo.path)});
+    final res = await _dio.patch('/insurances/$insuranceId/upload_document', data: form,
+        options: Options(contentType: 'multipart/form-data'));
     return res.data['data'] as Map<String, dynamic>;
   }
 

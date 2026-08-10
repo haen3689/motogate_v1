@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'advertisement_service.dart';
 import 'api_client.dart';
 
 class ApiAuthService {
@@ -23,6 +24,7 @@ class ApiAuthService {
     });
     final data = res.data['data'] as Map<String, dynamic>;
     await ApiClient.saveToken(data['token'] as String);
+    await AdPopupPrefs.reset();
     return data['user'] as Map<String, dynamic>;
   }
 
@@ -33,6 +35,7 @@ class ApiAuthService {
     });
     final data = res.data['data'] as Map<String, dynamic>;
     await ApiClient.saveToken(data['token'] as String);
+    await AdPopupPrefs.reset();
     return data['user'] as Map<String, dynamic>;
   }
 

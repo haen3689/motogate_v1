@@ -163,6 +163,7 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
         .toUpperCase();
     final vehicleLabel =
         brandModel.isEmpty ? _typeLabel(widget.vehicle['vehicle_type']?.toString()) : brandModel;
+    final chassisNumber = widget.vehicle['chassis_number']?.toString();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -183,11 +184,20 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
                   MgPlateBadge(plateNumber: plate, province: province, plateType: plateType),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(vehicleLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.bodySmall.copyWith(
-                            fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.black)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(vehicleLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodySmall.copyWith(
+                              fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.black)),
+                      if (chassisNumber != null && chassisNumber.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text('ເລກຖັງ: $chassisNumber',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.caption.copyWith(fontSize: 10.5, color: AppColors.grey500)),
+                      ],
+                    ]),
                   ),
                 ]),
               ),
@@ -220,12 +230,13 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
               Text('ເລືອກວິທີເພີ່ມຂໍ້ມູນ',
                   style: AppTextStyles.titleSmall.copyWith(fontSize: 14, fontWeight: FontWeight.w800)),
               const SizedBox(height: 10),
-              Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(children: [
                 Expanded(child: _methodCard(selected: true, icon: Icons.upload_outlined, label: 'ອັບໂຫລດຮູບ', sub: 'Gallery / ຖ່າຍໃໝ່')),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _methodCard(
                     selected: false,
+                    comingSoon: true,
                     icon: Icons.qr_code_scanner,
                     label: 'ສະແກນ QR',
                     sub: 'ຈາກໃບຮັບເງິນ',
@@ -373,31 +384,32 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
     required IconData icon,
     required String label,
     required String sub,
+    bool comingSoon = false,
     VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 100,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        height: 116,
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primarySurface : Colors.white,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.primaryLight, width: selected ? 2.5 : 1),
+          color: Colors.white,
+          border: Border.all(color: selected ? AppColors.primary : AppColors.grey100, width: selected ? 2 : 1),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: selected
-              ? [const BoxShadow(color: Color(0x1A000000), blurRadius: 12, offset: Offset(0, 3))]
-              : null,
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 14, offset: const Offset(0, 3)),
+          ],
         ),
-        child: Stack(children: [
+        child: Stack(alignment: Alignment.center, children: [
           Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Container(
               width: 46,
               height: 46,
               decoration: BoxDecoration(
-                color: selected ? AppColors.primary : const Color(0xFFF0F2F5),
+                color: AppColors.primarySurface,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: selected ? Colors.white : AppColors.grey500, size: 21),
+              child: Icon(icon, color: AppColors.primary, size: 21),
             ),
             const SizedBox(height: 8),
             Text(label,
@@ -405,8 +417,16 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: selected ? AppColors.primary : AppColors.black)),
-            const SizedBox(height: 2),
-            Text(sub, style: const TextStyle(fontSize: 9, color: AppColors.grey500)),
+            const SizedBox(height: 3),
+            if (comingSoon)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: AppColors.grey50, borderRadius: BorderRadius.circular(20)),
+                child: const Text('ກຳລັງພັດທະນາ',
+                    style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: AppColors.grey500)),
+              )
+            else
+              Text(sub, style: const TextStyle(fontSize: 9, color: AppColors.grey500)),
           ]),
           if (selected)
             Positioned(
@@ -445,15 +465,17 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
 
   Widget _uploadBox() => GestureDetector(
         onTap: _showSourcePicker,
-        child: Container(
-          height: 110,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.primary, width: 2),
-          ),
-          child: _proofImage != null
+        child: CustomPaint(
+          painter: const _DashedRRectPainter(
+              color: AppColors.primary, radius: 16, strokeWidth: 2, dashWidth: 6, gapWidth: 5),
+          child: Container(
+            height: 110,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: _proofImage != null
               ? Stack(fit: StackFit.expand, children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(15),
@@ -485,6 +507,51 @@ class _RoadtaxUploadProofScreenState extends State<RoadtaxUploadProofScreen> {
                   const SizedBox(height: 3),
                   const Text('JPG, PNG · ສູງສຸດ 10MB', style: TextStyle(color: AppColors.grey500, fontSize: 10)),
                 ]),
+          ),
         ),
       );
+}
+
+class _DashedRRectPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+  final double dashWidth;
+  final double gapWidth;
+  const _DashedRRectPainter({
+    required this.color,
+    required this.radius,
+    required this.strokeWidth,
+    required this.dashWidth,
+    required this.gapWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2, size.width - strokeWidth, size.height - strokeWidth),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(metric.extractPath(distance, next.clamp(0, metric.length)), paint);
+        distance = next + gapWidth;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRRectPainter oldDelegate) =>
+      color != oldDelegate.color ||
+      radius != oldDelegate.radius ||
+      strokeWidth != oldDelegate.strokeWidth ||
+      dashWidth != oldDelegate.dashWidth ||
+      gapWidth != oldDelegate.gapWidth;
 }

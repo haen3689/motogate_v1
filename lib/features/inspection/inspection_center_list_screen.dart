@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:showcaseview/showcaseview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/coach_mark_tour.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
@@ -23,11 +25,23 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
   double? _userLat;
   double? _userLng;
 
+  static const _tourSeenPrefKey = 'inspection_centers_tour_seen';
+  final _tourKeySearch = GlobalKey();
+  final _tourKeyCard = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _load();
     _locateUser();
+  }
+
+  Future<void> _maybeStartTour() =>
+      CoachMarkTour.maybeStart(prefKey: _tourSeenPrefKey, start: _startTour);
+
+  void _startTour() {
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_tourKeySearch, _tourKeyCard]);
   }
 
   Future<void> _load() async {
@@ -39,6 +53,7 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
       final list = await ApiInspectionService.centers();
       final active = list.where((c) => c['status']?.toString() != 'inactive').toList();
       if (mounted) setState(() => _centers = _sorted(active));
+      if (active.isNotEmpty) _maybeStartTour();
     } catch (e) {
       if (mounted) {
         setState(() => _error =
@@ -129,13 +144,27 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
     final centers = _filtered;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MgHeader(title: 'ສູນກວດສະພາບລົດ'),
+      appBar: MgHeader(title: 'ສູນກວດສະພາບລົດ', actions: [
+        GestureDetector(
+          onTap: _startTour,
+          child: Container(
+            width: 34,
+            height: 34,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.help_outline, color: AppColors.white, size: 20),
+          ),
+        ),
+      ]),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
-              ? _message(_error!, retry: _load)
+              ? _message(_error!, retry: _load, icon: Icons.error_outline)
               : _centers.isEmpty
-                  ? _message('ບໍ່ພົບສູນກວດສະພາບລົດ', retry: _load)
+                  ? _message('ບໍ່ພົບສູນກວດສະພາບລົດ', retry: _load, icon: Icons.fact_check_outlined)
                   : Column(children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(22, 20, 22, 12),
@@ -147,23 +176,29 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
                           Text('ເລືອກສູນທີ່ໃກ້ ຫຼື ສະດວກສຳລັບທ່ານ',
                               style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
                           const SizedBox(height: 14),
-                          MgSearchBar(
-                            hintText: 'ຄົ້ນຫາສູນກວດສະພາບລົດ',
-                            onChanged: (v) => setState(() => _query = v),
+                          Showcase(
+                            key: _tourKeySearch,
+                            title: 'ຄົ້ນຫາ',
+                            description: 'ພິມຊື່ ຫຼື ທີ່ຢູ່ເພື່ອຄົ້ນຫາສູນກວດສະພາບລົດ',
+                            targetBorderRadius: BorderRadius.circular(14),
+                            child: MgSearchBar(
+                              hintText: 'ຄົ້ນຫາສູນກວດສະພາບລົດ',
+                              onChanged: (v) => setState(() => _query = v),
+                            ),
                           ),
                         ]),
                       ),
                       Expanded(
                         child: centers.isEmpty
-                            ? _message('ບໍ່ພົບສູນທີ່ຄົ້ນຫາ')
+                            ? _message('ບໍ່ພົບສູນທີ່ຄົ້ນຫາ', icon: Icons.search_off)
                             : RefreshIndicator(
                                 color: AppColors.primary,
                                 onRefresh: _load,
                                 child: ListView.separated(
                                   padding: const EdgeInsets.fromLTRB(22, 4, 22, 22),
                                   itemCount: centers.length,
-                                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                                  itemBuilder: (_, i) => _centerRow(centers[i]),
+                                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                                  itemBuilder: (_, i) => _centerRow(centers[i], i),
                                 ),
                               ),
                       ),
@@ -171,7 +206,7 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
     );
   }
 
-  Widget _centerRow(Map<String, dynamic> center) {
+  Widget _centerRow(Map<String, dynamic> center, int index) {
     final name = center['name']?.toString() ?? '';
     final location = center['location']?.toString() ?? '';
     final logoPath = center['logo']?.toString();
@@ -185,101 +220,141 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
     final lng = num.tryParse(center['longitude']?.toString() ?? '');
     final hasCoords = lat != null && lng != null;
     final distance = _distanceTo(center);
+    final isNearest = index == 0 && distance != null;
 
-    return GestureDetector(
+    final row = GestureDetector(
       onTap: () => Navigator.of(context).pushNamed('/inspection/vehicle', arguments: center),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: AppColors.grey100),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4)),
+          ],
         ),
-        child: Row(children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primaryLight, width: 1.5),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primarySurface,
+                border: Border.all(color: AppColors.primaryLight, width: 1.5),
+                boxShadow: [
+                  BoxShadow(color: AppColors.primary.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 3)),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: logoUrl != null
+                  ? Image.network(logoUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _logoFallback())
+                  : _logoFallback(),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: logoUrl != null
-                ? Image.network(logoUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _logoFallback())
-                : _logoFallback(),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.titleSmall.copyWith(fontSize: 14.5, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text('$serviceCount ບໍລິການ',
-                      style: const TextStyle(
-                          color: AppColors.primary, fontSize: 10.5, fontWeight: FontWeight.w700)),
-                ),
-                if (location.isNotEmpty) ...[
-                  const SizedBox(width: 8),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(
-                    child: Text(location,
+                    child: Text(name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption.copyWith(fontSize: 11)),
+                        style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
                   ),
+                  const SizedBox(width: 6),
+                  const _StatusDot(),
+                ]),
+                if (location.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    const Icon(Icons.place_outlined, color: AppColors.grey400, size: 12.5),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.caption.copyWith(fontSize: 11.5)),
+                    ),
+                  ]),
                 ],
               ]),
-              if (distance != null) ...[
-                const SizedBox(height: 6),
-                Row(children: [
-                  const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 13),
-                  const SizedBox(width: 3),
-                  Text('ຫ່າງຈາກທ່ານ ${distance.toStringAsFixed(1)} km',
-                      style: AppTextStyles.caption
-                          .copyWith(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.grey600)),
-                ]),
-              ],
-            ]),
-          ),
-          const SizedBox(width: 6),
-          if (hasCoords)
-            GestureDetector(
-              onTap: () => _openInMaps(lat.toDouble(), lng.toDouble()),
-              child: Container(
-                width: 32,
-                height: 32,
-                margin: const EdgeInsets.only(right: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.map_outlined, color: AppColors.primary, size: 17),
-              ),
             ),
-          const Icon(Icons.chevron_right, color: AppColors.grey300, size: 22),
+          ]),
+          const SizedBox(height: 12),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            if (isNearest) _chip('ໃກ້ທີ່ສຸດ', icon: Icons.stars_rounded, bg: const Color(0xFFFEF3C7), fg: const Color(0xFFB45309)),
+            _chip('$serviceCount ບໍລິການ', icon: Icons.fact_check_outlined, bg: AppColors.primarySurface, fg: AppColors.primary),
+            if (distance != null)
+              _chip('${distance.toStringAsFixed(1)} km', icon: Icons.near_me_outlined, bg: AppColors.primarySurface, fg: AppColors.primary),
+          ]),
+          const SizedBox(height: 14),
+          Row(children: [
+            const Spacer(),
+            if (hasCoords) ...[
+              GestureDetector(
+                onTap: () => _openInMaps(lat.toDouble(), lng.toDouble()),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.map_outlined, color: AppColors.primary, size: 18),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('ເລືອກ', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800)),
+                SizedBox(width: 4),
+                Icon(Icons.arrow_forward, color: Colors.white, size: 14),
+              ]),
+            ),
+          ]),
         ]),
       ),
     );
+
+    if (index != 0) return row;
+    return Showcase(
+      key: _tourKeyCard,
+      title: 'ສູນກວດສະພາບລົດ',
+      description: 'ເບິ່ງໄລຍະຫ່າງ ແລະ ຈຳນວນບໍລິການ, ກົດແຜນທີ່ເພື່ອນຳທາງ, ຫຼືກົດ "ເລືອກ" ເພື່ອດຳເນີນການຕໍ່',
+      targetBorderRadius: BorderRadius.circular(20),
+      tooltipActions: CoachMarkTour.lastStepActions(context),
+      child: row,
+    );
   }
+
+  Widget _chip(String label, {required IconData icon, required Color bg, required Color fg}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: fg, size: 12.5),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700)),
+        ]),
+      );
 
   Widget _logoFallback() => Container(
         color: AppColors.primarySurface,
         alignment: Alignment.center,
-        child: const Icon(Icons.fact_check_outlined, color: AppColors.primary, size: 26),
+        child: const Icon(Icons.fact_check_outlined, color: AppColors.primary, size: 32),
       );
 
-  Widget _message(String text, {VoidCallback? retry}) => Center(
+  Widget _message(String text, {VoidCallback? retry, IconData icon = Icons.info_outline}) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, color: AppColors.grey300, size: 40),
+            const SizedBox(height: 12),
             Text(text, style: AppTextStyles.bodySmall, textAlign: TextAlign.center),
             if (retry != null) ...[
               const SizedBox(height: 16),
@@ -288,4 +363,20 @@ class _InspectionCenterListScreenState extends State<InspectionCenterListScreen>
           ]),
         ),
       );
+}
+
+class _StatusDot extends StatelessWidget {
+  const _StatusDot();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: AppColors.successLight, borderRadius: BorderRadius.circular(20)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 5, height: 5, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        const Text('ເປີດ', style: TextStyle(color: AppColors.success, fontSize: 10, fontWeight: FontWeight.w800)),
+      ]),
+    );
+  }
 }

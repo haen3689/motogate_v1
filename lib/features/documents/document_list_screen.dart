@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../core/services/api_auth_service.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_inspection_service.dart';
 import '../../core/services/api_insurance_service.dart';
 import '../../core/services/api_road_tax_service.dart';
 import '../../core/services/api_vehicle_service.dart';
+import '../../core/services/coach_mark_tour.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
@@ -34,12 +36,25 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
   bool _loading = true;
   String? _error;
 
+  static const _tourSeenPrefKey = 'documents_tour_seen';
+  final _tourKeyCard = GlobalKey();
+  final _tourKeyStatus = GlobalKey();
+  final _tourKeyQr = GlobalKey();
+
   bool get _singleVehicleMode => widget.vehicle != null;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  Future<void> _maybeStartTour() =>
+      CoachMarkTour.maybeStart(prefKey: _tourSeenPrefKey, start: _startTour);
+
+  void _startTour() {
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_tourKeyCard, _tourKeyStatus, _tourKeyQr]);
   }
 
   Future<void> _load() async {
@@ -91,6 +106,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+    if (_error == null) _maybeStartTour();
   }
 
   List<Map<String, dynamic>> get _sortedVehicles {
@@ -221,6 +237,19 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       backgroundColor: AppColors.background,
       appBar: MgHeader(title: 'ເບິ່ງຂໍ້ມູນເອກະສານ', actions: [
         GestureDetector(
+          onTap: _startTour,
+          child: Container(
+            width: 34,
+            height: 34,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.help_outline, color: AppColors.white, size: 20),
+          ),
+        ),
+        GestureDetector(
           onTap: () => Navigator.of(context).pushNamed('/vehicles'),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -285,15 +314,21 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       mock: _mockCard(
           bgColor: const Color(0xFF0F5A96),
           bandColor: const Color(0xFF0A3C6C),
-          bandLabel: 'DRIVER LICENSE',
+          bandLabel: 'ໃບຂັບຂີ່',
           icon: Icons.person),
       title: 'ໃບຂັບຂີ່',
-      line1: _user?['license_type'] != null ? 'CLASS: ${_user?['license_type']}' : '',
+      line1: _user?['license_type'] != null ? 'ປະເພດ: ${_user?['license_type']}' : '',
       line2: expiry != null ? 'ໝົດອາຍຸ: ${_formatDate(expiry)}' : 'ຍັງບໍ່ໄດ້ຕື່ມຂໍ້ມູນ',
       status: status,
       onTap: () => (imageUrl != null && imageUrl.isNotEmpty)
           ? _viewImage(imageUrl)
           : Navigator.of(context).pushNamed('/license/setup'),
+      cardTourKey: _tourKeyCard,
+      cardTourTitle: 'ບັດເອກະສານ',
+      cardTourDescription: 'ແຕ່ລະບັດແມ່ນເອກະສານໜຶ່ງປະເພດ — ກົດເພື່ອເບິ່ງຮູບ ຫຼື ຕື່ມຂໍ້ມູນທີ່ຍັງຂາດ',
+      statusTourKey: _tourKeyStatus,
+      statusTourTitle: 'ສະຖານະເອກະສານ',
+      statusTourDescription: '✓ ສີຂຽວ = ຖືກຕ້ອງ, ✕ ສີແດງ = ໝົດອາຍຸ, ! ສີເຫຼືອງ = ຍັງບໍ່ມີຂໍ້ມູນ',
     );
   }
 
@@ -318,27 +353,34 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   Widget _inspectionRow(Map<String, dynamic> v) {
     final record = _latestFor(_inspections, v['id']);
-    final status = record == null
-        ? _DocStatus.missing
-        : record['status']?.toString() == 'passed'
-            ? _DocStatus.valid
-            : record['status']?.toString() == 'failed'
-                ? _DocStatus.expired
-                : _DocStatus.missing;
+    final recordStatus = record?['status']?.toString();
+    final status = recordStatus == 'completed'
+        ? _DocStatus.valid
+        : recordStatus == 'cancelled'
+            ? _DocStatus.expired
+            : _DocStatus.missing;
     final plate = v['plate_number']?.toString();
+    final stickerPath = record?['sticker']?.toString();
+    final stickerUrl =
+        stickerPath != null && stickerPath.isNotEmpty ? '${ApiClient.webBaseUrl}$stickerPath' : null;
+    final appointmentText = 'ວັນທີ: ${_formatDate(record?['appointment_at']?.toString()) ?? '-'}';
     return _docRow(
       mock: _mockCard(
           bgColor: const Color(0xFF2AB659),
           bandColor: const Color(0xFF1A8C47),
-          bandLabel: 'TECHNICAL INSPECTION',
+          bandLabel: 'ກວດກາເຕັກນິກ',
           icon: Icons.fact_check_outlined),
       title: 'ກວດກາເຕັກນິກ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
-      line2: record != null
-          ? 'ວັນທີ: ${_formatDate(record['appointment_at']?.toString()) ?? '-'}'
-          : 'ຍັງບໍ່ໄດ້ກວດກາ',
+      line2: record == null
+          ? 'ຍັງບໍ່ໄດ້ກວດກາ'
+          : stickerUrl != null
+              ? '$appointmentText · ກົດເບິ່ງສະຕິກເກີ້'
+              : appointmentText,
       status: status,
-      onTap: () => Navigator.of(context).pushNamed('/vehicle/detail', arguments: v),
+      onTap: () => stickerUrl != null
+          ? _viewImage(stickerUrl)
+          : Navigator.of(context).pushNamed('/vehicle/detail', arguments: v),
     );
   }
 
@@ -389,8 +431,15 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     required String line2,
     required _DocStatus status,
     required VoidCallback onTap,
+    GlobalKey? cardTourKey,
+    String? cardTourTitle,
+    String? cardTourDescription,
+    GlobalKey? statusTourKey,
+    String? statusTourTitle,
+    String? statusTourDescription,
   }) {
-    return GestureDetector(
+    final statusWidget = _statusIcon(status);
+    final card = GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
@@ -430,12 +479,32 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(right: 16),
-              child: Center(child: _statusIcon(status)),
+              child: Center(
+                child: statusTourKey == null
+                    ? statusWidget
+                    : Showcase(
+                        key: statusTourKey,
+                        title: statusTourTitle ?? '',
+                        description: statusTourDescription ?? '',
+                        targetShapeBorder: const CircleBorder(),
+                        child: statusWidget,
+                      ),
+              ),
             ),
           ]),
         ),
       ),
     );
+
+    return cardTourKey == null
+        ? card
+        : Showcase(
+            key: cardTourKey,
+            title: cardTourTitle ?? '',
+            description: cardTourDescription ?? '',
+            targetBorderRadius: BorderRadius.circular(16),
+            child: card,
+          );
   }
 
   Widget _statusIcon(_DocStatus status) {
@@ -486,42 +555,49 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     );
   }
 
-  Widget _qrBanner() => GestureDetector(
-        onTap: _showMyQrCode,
-        child: Container(
-          height: 78,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6)),
-            ],
-          ),
-          child: Row(children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.qr_code_2, color: Colors.white, size: 26),
+  Widget _qrBanner() => Showcase(
+        key: _tourKeyQr,
+        title: 'QR CODE ເອກະສານ',
+        description: 'ໃຫ້ເຈົ້າໜ້າທີ່ສະແກນ QR ນີ້ເພື່ອກວດສອບເອກະສານທັງໝົດຂອງທ່ານ ໂດຍບໍ່ຕ້ອງເປີດເອກະສານເອງ',
+        targetBorderRadius: BorderRadius.circular(20),
+        tooltipActions: CoachMarkTour.lastStepActions(context),
+        child: GestureDetector(
+          onTap: _showMyQrCode,
+          child: Container(
+            height: 78,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6)),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('QR CODE ເອກະສານ',
-                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 2),
-                  Text('ສະແກນເພື່ອກວດສອບເອກະສານທັງໝົດ',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11.5)),
-                ],
+            child: Row(children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.qr_code_2, color: Colors.white, size: 26),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.white, size: 24),
-          ]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('QR CODE ເອກະສານ',
+                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text('ສະແກນເພື່ອກວດສອບເອກະສານທັງໝົດ',
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11.5)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.white, size: 24),
+            ]),
+          ),
         ),
       );
 

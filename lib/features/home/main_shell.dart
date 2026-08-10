@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/widgets/widgets.dart';
 import 'home_screen.dart';
-import '../notifications/notification_center_screen.dart';
+import '../announcements/announcement_list_screen.dart';
 import '../transactions/transaction_history_screen.dart';
 import '../profile/profile_menu_screen.dart';
 
@@ -22,7 +22,7 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     _screens = [
       HomeScreen(key: _homeKey),
-      const NotificationCenterScreen(),
+      const AnnouncementListScreen(),
       const TransactionHistoryScreen(),
       const ProfileMenuScreen(),
     ];

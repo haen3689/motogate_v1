@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/services/api_auth_service.dart';
+import '../../core/services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,118 +14,141 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notifications = true;
-  bool _darkMode = false;
+  bool _notificationSound = true;
+  String _appVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _appVersion = 'v${info.version}');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MgHeader(title: 'ຕັ້ງຄ່າ'),
+      appBar: const MgHeader(title: 'ການຕັ້ງຄ່າ'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _tipBanner('ປັບແຕ່ງການແຈ້ງເຕືອນ, ພາສາ ແລະ ເບິ່ງຂໍ້ມູນແອັບໄດ້ທີ່ໜ້ານີ້'),
-            const SizedBox(height: 18),
-
-            _sectionHeader(Icons.notifications_outlined, 'ການແຈ້ງເຕືອນ'),
+            _sectionHeader('ທົ່ວໄປ'),
             const SizedBox(height: 8),
-            _sectionCard([
-              _toggleRow(
-                icon: Icons.notifications_active_outlined,
-                label: 'ຮັບການແຈ້ງເຕືອນ',
-                value: _notifications,
-                onChanged: (v) => setState(() => _notifications = v),
-              ),
+            _card([
+              _infoRow('🌐', 'ພາສາ', value: 'ລາວ'),
+              _divider(),
+              _toggleRow('🔔', 'ການແຈ້ງເຕືອນ', value: _notifications,
+                  onChanged: (v) => setState(() => _notifications = v)),
+              _divider(),
+              _toggleRow('🔊', 'ສຽງແຈ້ງເຕືອນ', value: _notificationSound,
+                  onChanged: (v) => setState(() => _notificationSound = v)),
             ]),
             const SizedBox(height: 22),
 
-            _sectionHeader(Icons.palette_outlined, 'ການສະແດງຜົນ'),
+            _sectionHeader('ອື່ນໆ'),
             const SizedBox(height: 8),
-            _sectionCard([
-              _toggleRow(
-                icon: Icons.dark_mode_outlined,
-                label: 'ໂໝດມືດ',
-                value: _darkMode,
-                onChanged: (v) => setState(() => _darkMode = v),
-              ),
-              const Divider(height: 1, indent: 56),
-              _infoRow(Icons.language, 'ພາສາ', 'ລາວ'),
+            _card([
+              _linkRow('🛡️', 'ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ', () => Navigator.of(context).pushNamed('/privacy-policy')),
+              _divider(),
+              _infoRow('📦', 'ເວີຊັນແອັບ', value: _appVersion.isNotEmpty ? _appVersion : '—'),
             ]),
             const SizedBox(height: 22),
 
-            _sectionHeader(Icons.info_outline, 'ກ່ຽວກັບແອັບ'),
-            const SizedBox(height: 8),
-            _sectionCard([
-              _infoRow(Icons.smartphone_outlined, 'ເວີຊັນແອັບ', 'v1.0.0'),
-            ]),
+            GestureDetector(
+              onTap: () async {
+                await ApiAuthService.logout();
+                await AuthService.signOut();
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (r) => false);
+                }
+              },
+              child: Container(
+                width: double.infinity,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF5C2C2), width: 1.5),
+                ),
+                child: Text('ອອກຈາກລະບົບ',
+                    style: AppTextStyles.titleSmall.copyWith(color: AppColors.error, fontSize: 15)),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // ── Building blocks (shared sectioned-card style) ───────────────────────
+  // ── Building blocks ──────────────────────────────────────────────────
 
-  Widget _tipBanner(String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.primarySurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.primary, width: 1.5),
-        ),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.lightbulb_outline, color: AppColors.primary, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(text,
-                style: AppTextStyles.bodySmall.copyWith(color: const Color(0xFF1A1A1A), height: 1.4)),
-          ),
-        ]),
-      );
+  Widget _sectionHeader(String title) => Text(title,
+      style: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w800, fontSize: 12.5));
 
-  Widget _sectionHeader(IconData icon, String title) => Row(children: [
-        Icon(icon, color: AppColors.primary, size: 18),
-        const SizedBox(width: 8),
-        Text(title, style: AppTextStyles.titleSmall.copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
-      ]);
-
-  Widget _sectionCard(List<Widget> rows) => Container(
+  Widget _card(List<Widget> rows) => Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: AppColors.grey100),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(color: Color(0x0D000000), blurRadius: 16, offset: Offset(0, 6)),
-          ],
+          border: Border.all(color: AppColors.primaryLight),
+          borderRadius: BorderRadius.circular(18),
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(children: rows),
       );
 
-  Widget _toggleRow({
-    required IconData icon,
-    required String label,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) =>
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+  Widget _divider() => const Divider(height: 1, indent: 12, endIndent: 12, color: AppColors.primaryLight);
+
+  Widget _iconBox(String emoji) => Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: AppColors.primarySurface, borderRadius: BorderRadius.circular(12)),
+        child: Text(emoji, style: const TextStyle(fontSize: 16)),
+      );
+
+  Widget _infoRow(String emoji, String label, {required String value}) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(children: [
-          Icon(icon, color: AppColors.primary, size: 22),
-          const SizedBox(width: 16),
-          Expanded(child: Text(label, style: AppTextStyles.bodyMedium)),
+          _iconBox(emoji),
+          const SizedBox(width: 14),
+          Expanded(
+              child: Text(label,
+                  style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500, fontSize: 13.5))),
+          Text(value, style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500)),
+        ]),
+      );
+
+  Widget _toggleRow(String emoji, String label, {required bool value, required ValueChanged<bool> onChanged}) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          _iconBox(emoji),
+          const SizedBox(width: 14),
+          Expanded(
+              child: Text(label,
+                  style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500, fontSize: 13.5))),
           MgToggle(value: value, onChanged: onChanged),
         ]),
       );
 
-  Widget _infoRow(IconData icon, String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(children: [
-          Icon(icon, color: AppColors.primary, size: 22),
-          const SizedBox(width: 16),
-          Expanded(child: Text(label, style: AppTextStyles.bodyMedium)),
-          Text(value, style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500)),
-        ]),
+  Widget _linkRow(String emoji, String label, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(children: [
+            _iconBox(emoji),
+            const SizedBox(width: 14),
+            Expanded(
+                child: Text(label,
+                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500, fontSize: 13.5))),
+            const Icon(Icons.chevron_right, color: AppColors.primary, size: 20),
+          ]),
+        ),
       );
 }

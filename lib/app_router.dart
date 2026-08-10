@@ -35,13 +35,14 @@ import 'features/inspection/inspection_payment_screen.dart';
 import 'features/inspection/inspection_success_screen.dart';
 import 'features/services/service_list_screen.dart';
 import 'features/services/service_detail_screen.dart';
-import 'features/services/service_map_screen.dart';
 import 'features/profile/settings_screen.dart';
-import 'features/profile/change_phone_screen.dart';
+import 'features/profile/about_screen.dart';
+import 'features/profile/privacy_policy_screen.dart';
 import 'features/profile/profile_edit_screen.dart';
 import 'features/chat/chat_list_screen.dart';
 import 'features/chat/chat_conversation_screen.dart';
-import 'features/notifications/notification_center_screen.dart';
+import 'features/announcements/announcement_list_screen.dart';
+import 'features/announcements/announcement_detail_screen.dart';
 import 'features/transactions/transaction_detail_screen.dart';
 import 'features/documents/document_list_screen.dart';
 
@@ -214,20 +215,22 @@ class AppRouter {
         return _r(const ServiceListScreen(type: ServiceType.towing), s);
       case '/services/detail':
         return _r(const ServiceDetailScreen(), s);
-      case '/services/map':
-        return _r(const ServiceMapScreen(), s);
       case '/profile/edit':
         return _r(const ProfileEditScreen(), s);
       case '/settings':
         return _r(const SettingsScreen(), s);
-      case '/profile/change-phone':
-        return _r(const ChangePhoneScreen(), s);
+      case '/about':
+        return _r(const AboutScreen(), s);
+      case '/privacy-policy':
+        return _r(const PrivacyPolicyScreen(), s);
       case '/chat':
         return _r(const ChatListScreen(), s);
       case '/chat/conversation':
         return _r(const ChatConversationScreen(), s);
-      case '/notifications':
-        return _r(const NotificationCenterScreen(), s);
+      case '/announcements':
+        return _r(const AnnouncementListScreen(), s);
+      case '/announcements/detail':
+        return _r(const AnnouncementDetailScreen(), s);
       case '/transactions/detail':
         return _r(const TransactionDetailScreen(), s);
       case '/documents':

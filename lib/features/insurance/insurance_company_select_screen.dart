@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:showcaseview/showcaseview.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/coach_mark_tour.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
@@ -22,10 +24,22 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
   String? _error;
   String _query = '';
 
+  static const _tourSeenPrefKey = 'insurance_companies_tour_seen';
+  final _tourKeySearch = GlobalKey();
+  final _tourKeyCard = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  Future<void> _maybeStartTour() =>
+      CoachMarkTour.maybeStart(prefKey: _tourSeenPrefKey, start: _startTour);
+
+  void _startTour() {
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_tourKeySearch, _tourKeyCard]);
   }
 
   Future<void> _load() async {
@@ -39,6 +53,7 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
           .where((c) => ((c['insurance_packages'] as List?) ?? []).isNotEmpty)
           .toList();
       if (mounted) setState(() => _companies = withPackages);
+      if (withPackages.isNotEmpty) _maybeStartTour();
     } catch (e) {
       if (mounted) {
         setState(() => _error =
@@ -74,7 +89,21 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
     final companies = _filtered;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MgHeader(title: 'ປະກັນໄພພາຫະນະ'),
+      appBar: MgHeader(title: 'ປະກັນໄພພາຫະນະ', actions: [
+        GestureDetector(
+          onTap: _startTour,
+          child: Container(
+            width: 34,
+            height: 34,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.help_outline, color: AppColors.white, size: 20),
+          ),
+        ),
+      ]),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
@@ -92,9 +121,15 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
                           Text('ປຽບທຽບ ແລະ ເລືອກບໍລິສັດທີ່ທ່ານຕ້ອງການ',
                               style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
                           const SizedBox(height: 14),
-                          MgSearchBar(
-                            hintText: 'ຄົ້ນຫາບໍລິສັດປະກັນໄພ',
-                            onChanged: (v) => setState(() => _query = v),
+                          Showcase(
+                            key: _tourKeySearch,
+                            title: 'ຄົ້ນຫາ',
+                            description: 'ພິມຊື່ບໍລິສັດປະກັນໄພເພື່ອຄົ້ນຫາ',
+                            targetBorderRadius: BorderRadius.circular(14),
+                            child: MgSearchBar(
+                              hintText: 'ຄົ້ນຫາບໍລິສັດປະກັນໄພ',
+                              onChanged: (v) => setState(() => _query = v),
+                            ),
                           ),
                         ]),
                       ),
@@ -108,7 +143,7 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
                                   padding: const EdgeInsets.fromLTRB(22, 4, 22, 22),
                                   itemCount: companies.length,
                                   separatorBuilder: (_, __) => const SizedBox(height: 10),
-                                  itemBuilder: (_, i) => _companyRow(companies[i]),
+                                  itemBuilder: (_, i) => _companyRow(companies[i], i),
                                 ),
                               ),
                       ),
@@ -116,7 +151,7 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
     );
   }
 
-  Widget _companyRow(Map<String, dynamic> company) {
+  Widget _companyRow(Map<String, dynamic> company, int index) {
     final name = company['name']?.toString() ?? '';
     final logoPath = company['logo']?.toString();
     final logoUrl =
@@ -127,7 +162,7 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
         .length;
     final minPrice = _minPrice(company);
 
-    return GestureDetector(
+    final row = GestureDetector(
       onTap: () => Navigator.of(context).pushNamed('/insurance/vehicle', arguments: company),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -184,6 +219,16 @@ class _InsuranceCompanySelectScreenState extends State<InsuranceCompanySelectScr
           const Icon(Icons.chevron_right, color: AppColors.grey300, size: 22),
         ]),
       ),
+    );
+
+    if (index != 0) return row;
+    return Showcase(
+      key: _tourKeyCard,
+      title: 'ບໍລິສັດປະກັນໄພ',
+      description: 'ເບິ່ງຈຳນວນແພັກເກັດ ແລະ ລາຄາເລີ່ມຕົ້ນ, ກົດເພື່ອເລືອກລົດ ແລະ ຊື້ປະກັນໄພ',
+      targetBorderRadius: BorderRadius.circular(16),
+      tooltipActions: CoachMarkTour.lastStepActions(context),
+      child: row,
     );
   }
 

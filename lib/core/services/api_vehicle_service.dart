@@ -97,4 +97,13 @@ class ApiVehicleService {
     final res = await _dio.put('/vehicles/$vehicleId', data: {'fee_paid': true});
     return res.data['data'] as Map<String, dynamic>;
   }
+
+  /// Uploads/replaces the vehicle's own front-view photo (separate from the
+  /// registration-book scans) — used by the ຮູບພາບ gallery.
+  static Future<Map<String, dynamic>> uploadFrontPhoto(dynamic vehicleId, File photo) async {
+    final form = FormData.fromMap({'front_photo': await MultipartFile.fromFile(photo.path)});
+    final res = await _dio.patch('/vehicles/$vehicleId', data: form,
+        options: Options(contentType: 'multipart/form-data'));
+    return res.data['data'] as Map<String, dynamic>;
+  }
 }

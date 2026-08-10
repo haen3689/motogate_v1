@@ -14,6 +14,7 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
   String? _name;
   String? _phone;
   String? _profileImageUrl;
+  bool _verified = false;
   bool _loadingUser = true;
 
   @override
@@ -32,6 +33,7 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
         _name            = '$first $last'.trim().isNotEmpty ? '$first $last'.trim() : (u['name']?.toString());
         _phone           = u['phone_number']?.toString();
         _profileImageUrl = u['profile_image_url']?.toString();
+        _verified        = u['verified'] == true;
         _loadingUser     = false;
       });
     } catch (_) {
@@ -43,151 +45,174 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(children: [
-        // ── Header ──
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 24,
-            left: 22, right: 22, bottom: 28,
-          ),
-          decoration: const BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-          ),
-          child: Column(children: [
-            // Avatar
-            GestureDetector(
-              onTap: () async {
-                final updated = await Navigator.of(context).pushNamed('/profile/edit');
-                if (updated == true) _loadUser();
-              },
-              child: Stack(
-                children: [
-                  Container(
-                    width: 80, height: 80,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                        ? Image.network(_profileImageUrl!, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.person, color: AppColors.white, size: 40))
-                        : const Icon(Icons.person, color: AppColors.white, size: 40),
-                  ),
-                  Positioned(
-                    bottom: 0, right: 0,
-                    child: Container(
-                      width: 22, height: 22,
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primary, width: 1.5),
-                      ),
-                      child: const Icon(Icons.edit, color: AppColors.primary, size: 12),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (_loadingUser)
-              const SizedBox(
-                  height: 18, width: 18,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            else
-              Text(
-                _name?.isNotEmpty == true ? _name! : 'MotoGate User',
-                style: const TextStyle(
-                    fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
-              ),
-            const SizedBox(height: 4),
-            Text(
-              _phone ?? '',
-              style: TextStyle(fontSize: 13, color: AppColors.white.withValues(alpha: 0.8)),
-            ),
-          ]),
-        ),
-
-        // ── Menu ──
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(22),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: Column(children: [
+          _header(context),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
             child: Column(children: [
-              _sec(Icons.person_outline, 'ບັນຊີ', [
-                _tile(Icons.person_outline, 'ແກ້ໄຂໂປຣໄຟລ໌', () async {
+              _card([
+                _tile(Icons.person_outline, 'ຂໍ້ມູນສ່ວນຕົວ', () async {
                   final updated = await Navigator.of(context).pushNamed('/profile/edit');
                   if (updated == true) _loadUser();
                 }),
-                _tile(Icons.phone_android, 'ປ່ຽນເບີໂທ',
-                    () => Navigator.of(context).pushNamed('/profile/change-phone')),
-                _tile(Icons.directions_car, 'ພາຫະນະຂອງຂ້ອຍ',
-                    () => Navigator.of(context).pushNamed('/vehicles')),
-              ]),
-              const SizedBox(height: 20),
-              _sec(Icons.tune_outlined, 'ທົ່ວໄປ', [
-                _tile(Icons.settings_outlined, 'ຕັ້ງຄ່າ',
+                _tile(Icons.settings_outlined, 'ການຕັ້ງຄ່າ',
                     () => Navigator.of(context).pushNamed('/settings')),
-                _tile(Icons.headset_mic_outlined, 'ຊ່ວຍເຫຼືອ',
-                    () => Navigator.of(context).pushNamed('/chat')),
+                _tile(Icons.description_outlined, 'ເງື່ອນໄຂແລະຂໍ້ກຳນົດ',
+                    () => Navigator.of(context).pushNamed('/terms')),
+                _tile(Icons.headset_mic_outlined, 'ສາຍດ່ວນ',
+                    () => Navigator.of(context).pushNamed('/chat'), isLast: true),
               ]),
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () async {
-                  await ApiAuthService.logout();
-                  await AuthService.signOut();
-                  if (context.mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (r) => false);
-                  }
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.error),
-                  ),
-                  child: Center(
-                    child: Text('ອອກຈາກລະບົບ',
-                        style: AppTextStyles.titleSmall.copyWith(color: AppColors.error)),
-                  ),
+              const SizedBox(height: 16),
+              _card([
+                _tile(Icons.info_outline, 'ແນະນຳກ່ຽວກັບ MotoGate Lao',
+                    () => Navigator.of(context).pushNamed('/about')),
+                _tile(
+                  Icons.logout,
+                  'ອອກຈາກລະບົບ',
+                  () async {
+                    await ApiAuthService.logout();
+                    await AuthService.signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).pushNamedAndRemoveUntil('/login', (r) => false);
+                    }
+                  },
+                  color: AppColors.error,
+                  isLast: true,
                 ),
-              ),
+              ]),
             ]),
           ),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 
-  Widget _sec(IconData icon, String t, List<Widget> items) => Container(
-    decoration: BoxDecoration(
-      color: AppColors.white,
-      border: Border.all(color: AppColors.grey100),
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: const [
-        BoxShadow(color: Color(0x0D000000), blurRadius: 16, offset: Offset(0, 6)),
-      ],
-    ),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Row(children: [
-          Icon(icon, color: AppColors.primary, size: 16),
-          const SizedBox(width: 8),
-          Text(t, style: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w800)),
-        ]),
-      ),
-      ...items,
-    ]),
-  );
+  // ── Header ────────────────────────────────────────────────────────────
 
-  Widget _tile(IconData ic, String t, VoidCallback tap) => ListTile(
-    leading: Icon(ic, color: AppColors.primary, size: 22),
-    title: Text(t, style: AppTextStyles.bodyMedium),
-    trailing: const Icon(Icons.chevron_right, color: AppColors.grey300, size: 20),
-    onTap: tap,
-  );
+  Widget _header(BuildContext context) => Container(
+        width: double.infinity,
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 24,
+          left: 22,
+          right: 22,
+          bottom: 28,
+        ),
+        decoration: const BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        child: Column(children: [
+          GestureDetector(
+            onTap: () async {
+              final updated = await Navigator.of(context).pushNamed('/profile/edit');
+              if (updated == true) _loadUser();
+            },
+            child: Stack(
+              children: [
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: const BoxDecoration(color: AppColors.white, shape: BoxShape.circle),
+                  clipBehavior: Clip.antiAlias,
+                  child: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                      ? Image.network(_profileImageUrl!, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.person, color: AppColors.grey300, size: 44))
+                      : const Icon(Icons.person, color: AppColors.grey300, size: 44),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 1.5),
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, color: AppColors.primary, size: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (_loadingUser)
+            const SizedBox(
+                height: 18, width: 18,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          else
+            Text(
+              _name?.isNotEmpty == true ? _name! : 'MotoGate User',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
+            ),
+          const SizedBox(height: 4),
+          Text(
+            _phone ?? '',
+            style: TextStyle(fontSize: 13, color: AppColors.white.withValues(alpha: 0.85)),
+          ),
+          if (_verified) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.successLight,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.check_circle, color: AppColors.success, size: 14),
+                const SizedBox(width: 5),
+                Text('ໄດ້ຢືນຢັນແລ້ວ',
+                    style: AppTextStyles.labelMedium.copyWith(
+                        color: AppColors.success, fontWeight: FontWeight.w800, fontSize: 12.5)),
+              ]),
+            ),
+          ],
+        ]),
+      );
+
+  // ── Menu building blocks ─────────────────────────────────────────────
+
+  Widget _card(List<Widget> rows) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border.all(color: AppColors.primaryLight),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(children: rows),
+      );
+
+  Widget _tile(IconData icon, String label, VoidCallback onTap, {Color? color, bool isLast = false}) => Column(
+        children: [
+          InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              child: Row(children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color ?? AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(label,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                          color: color ?? AppColors.black, fontWeight: FontWeight.w500, fontSize: 13.5)),
+                ),
+                Icon(Icons.chevron_right, color: color ?? AppColors.primary, size: 20),
+              ]),
+            ),
+          ),
+          if (!isLast) const Divider(height: 1, indent: 13, endIndent: 13, color: AppColors.primaryLight),
+        ],
+      );
 }

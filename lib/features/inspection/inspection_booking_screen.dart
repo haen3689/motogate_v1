@@ -24,18 +24,47 @@ class InspectionBookingScreen extends StatefulWidget {
 }
 
 class _InspectionBookingScreenState extends State<InspectionBookingScreen> {
-  static const _times = ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+  static const _openTime = TimeOfDay(hour: 8, minute: 0);
+  static const _closeTime = TimeOfDay(hour: 16, minute: 0);
 
   Map<String, dynamic>? _selectedService;
   DateTime? _date;
-  int _timeIndex = -1;
+  TimeOfDay? _time;
 
   num _price(Map<String, dynamic> svc) => num.tryParse(svc['price']?.toString() ?? '') ?? 0;
 
   DateTime? get _appointmentAt {
-    if (_date == null || _timeIndex < 0) return null;
-    final parts = _times[_timeIndex].split(':');
-    return DateTime(_date!.year, _date!.month, _date!.day, int.parse(parts[0]), int.parse(parts[1]));
+    if (_date == null || _time == null) return null;
+    return DateTime(_date!.year, _date!.month, _date!.day, _time!.hour, _time!.minute);
+  }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _pickTime() async {
+    final t = await showTimePicker(
+      context: context,
+      initialTime: _time ?? _openTime,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (t == null) return;
+    final minutes = t.hour * 60 + t.minute;
+    final minOpen = _openTime.hour * 60 + _openTime.minute;
+    final maxClose = _closeTime.hour * 60 + _closeTime.minute;
+    if (minutes < minOpen || minutes > maxClose) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'ກະລຸນາເລືອກເວລາລະຫວ່າງ ${_formatTime(_openTime)} - ${_formatTime(_closeTime)}'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+      return;
+    }
+    setState(() => _time = t);
   }
 
   void _showDetails(Map<String, dynamic> svc) {
@@ -175,14 +204,29 @@ class _InspectionBookingScreenState extends State<InspectionBookingScreen> {
                     const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        border: Border.all(color: AppColors.grey100),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4)),
+                        ],
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('ວັນທີ', style: AppTextStyles.labelMedium),
+                        Row(children: [
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                                color: AppColors.primarySurface, borderRadius: BorderRadius.circular(8)),
+                            child: const Icon(Icons.event_outlined, color: AppColors.primary, size: 15),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('ວັນທີ', style: AppTextStyles.labelMedium),
+                        ]),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () async {
@@ -221,30 +265,42 @@ class _InspectionBookingScreenState extends State<InspectionBookingScreen> {
                         const SizedBox(height: 16),
                         const Divider(color: AppColors.grey100, height: 1),
                         const SizedBox(height: 16),
-                        const Text('ເວລາ', style: AppTextStyles.labelMedium),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: List.generate(
-                            _times.length,
-                            (i) => GestureDetector(
-                              onTap: () => setState(() => _timeIndex = i),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                                decoration: BoxDecoration(
-                                  color: _timeIndex == i ? AppColors.primary : Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: _timeIndex == i ? AppColors.primary : AppColors.grey100),
-                                ),
-                                child: Text(_times[i],
-                                    style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: _timeIndex == i ? AppColors.white : AppColors.black)),
-                              ),
+                        Row(children: [
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                                color: AppColors.primarySurface, borderRadius: BorderRadius.circular(8)),
+                            child: const Icon(Icons.access_time, color: AppColors.primary, size: 15),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('ເວລາ', style: AppTextStyles.labelMedium),
+                          const SizedBox(width: 6),
+                          Text('(${_formatTime(_openTime)} - ${_formatTime(_closeTime)})',
+                              style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
+                        ]),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: _pickTime,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _time != null ? AppColors.primarySurface : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: _time != null ? AppColors.primary : AppColors.grey100,
+                                  width: _time != null ? 1.6 : 1),
                             ),
+                            child: Row(children: [
+                              const Icon(Icons.access_time, color: AppColors.primary, size: 18),
+                              const SizedBox(width: 10),
+                              Text(_time != null ? _formatTime(_time!) : 'ເລືອກເວລາ',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: _time != null ? FontWeight.w700 : FontWeight.w400)),
+                              const Spacer(),
+                              const Icon(Icons.chevron_right, color: AppColors.grey300, size: 18),
+                            ]),
                           ),
                         ),
                       ]),
@@ -282,36 +338,59 @@ class _InspectionBookingScreenState extends State<InspectionBookingScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: selected ? AppColors.primarySurface : Colors.white,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.grey100, width: selected ? 1.6 : 1),
-          borderRadius: BorderRadius.circular(16),
+          border: selected ? Border.all(color: AppColors.primary, width: 1.6) : null,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: selected
+              ? null
+              : [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 14,
+                      offset: const Offset(0, 3)),
+                ],
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(
-              child: Text(svc['name']?.toString() ?? '',
-                  style: AppTextStyles.bodyMedium.copyWith(fontSize: 14, fontWeight: FontWeight.w700)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: selected ? Colors.white : AppColors.primarySurface,
+              borderRadius: BorderRadius.circular(12),
             ),
-            Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: selected ? AppColors.primary : AppColors.grey300, size: 20),
-          ]),
-          const SizedBox(height: 10),
-          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${_money.format(_price(svc))} ກີບ',
-                style: TextStyle(
-                    color: selected ? AppColors.primary : AppColors.black,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
-            const Spacer(),
-            GestureDetector(
-              onTap: () => _showDetails(svc),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('ລາຍລະອຽດ',
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11.5)),
-                const Icon(Icons.chevron_right, color: AppColors.primary, size: 15),
+            child: const Icon(Icons.fact_check_outlined,
+                color: AppColors.primary, size: 19),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(
+                  child: Text(svc['name']?.toString() ?? '',
+                      style: AppTextStyles.bodyMedium.copyWith(fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
+                Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: selected ? AppColors.primary : AppColors.grey300, size: 20),
               ]),
-            ),
-          ]),
+              const SizedBox(height: 10),
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('${_money.format(_price(svc))} ກີບ',
+                    style: TextStyle(
+                        color: selected ? AppColors.primary : AppColors.black,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => _showDetails(svc),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('ລາຍລະອຽດ',
+                        style: AppTextStyles.caption
+                            .copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11.5)),
+                    const Icon(Icons.chevron_right, color: AppColors.primary, size: 15),
+                  ]),
+                ),
+              ]),
+            ]),
+          ),
         ]),
       ),
     );

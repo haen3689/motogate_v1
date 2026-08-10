@@ -23,34 +23,38 @@ class CoachMarkTour {
   /// Default Skip + Next buttons applied globally to every tooltip
   /// (set once on the app's [ShowCaseWidget]).
   static List<TooltipActionButton> get globalActions => [
-        TooltipActionButton(
+        const TooltipActionButton(
           type: TooltipDefaultActionType.skip,
           name: 'ຂ້າມ',
           backgroundColor: Colors.transparent,
-          textStyle: const TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w700),
+          textStyle:
+              TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w700),
         ),
-        TooltipActionButton(
+        const TooltipActionButton(
           type: TooltipDefaultActionType.next,
           name: 'ຖັດໄປ',
           backgroundColor: AppColors.primary,
-          textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          textStyle:
+              TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
       ];
 
   /// Skip + "Got it" buttons for the final step of a tour — dismisses the
   /// tour instead of advancing to a next step that doesn't exist.
   static List<TooltipActionButton> lastStepActions(BuildContext context) => [
-        TooltipActionButton(
+        const TooltipActionButton(
           type: TooltipDefaultActionType.skip,
           name: 'ຂ້າມ',
           backgroundColor: Colors.transparent,
-          textStyle: const TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w700),
+          textStyle:
+              TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w700),
         ),
         TooltipActionButton(
           type: TooltipDefaultActionType.next,
           name: 'ເຂົ້າໃຈແລ້ວ',
           backgroundColor: AppColors.primary,
-          textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          textStyle:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           onTap: () => ShowCaseWidget.of(context).dismiss(),
         ),
       ];

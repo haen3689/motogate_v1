@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../core/services/api_auth_service.dart';
 import '../../core/services/api_vehicle_service.dart';
+import '../../core/services/coach_mark_tour.dart';
 import '../../core/services/plate_type_cache.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -30,10 +32,21 @@ class _PaidVehiclePickerScreenState extends State<PaidVehiclePickerScreen> {
   bool _loading = true;
   String? _error;
 
+  static const _tourSeenPrefKey = 'vehicle_picker_tour_seen';
+  final _tourKeyCard = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  Future<void> _maybeStartTour() =>
+      CoachMarkTour.maybeStart(prefKey: _tourSeenPrefKey, start: _startTour);
+
+  void _startTour() {
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_tourKeyCard]);
   }
 
   Future<void> _load() async {
@@ -45,6 +58,7 @@ class _PaidVehiclePickerScreenState extends State<PaidVehiclePickerScreen> {
       final list = await ApiVehicleService.list();
       final paid = list.where((v) => v['fee_paid'] == true).toList();
       if (mounted) setState(() => _vehicles = paid);
+      if (paid.isNotEmpty) _maybeStartTour();
     } catch (e) {
       if (mounted) {
         setState(() => _error = e is DioException
@@ -76,7 +90,21 @@ class _PaidVehiclePickerScreenState extends State<PaidVehiclePickerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: MgHeader(title: widget.title),
+      appBar: MgHeader(title: widget.title, actions: [
+        GestureDetector(
+          onTap: _startTour,
+          child: Container(
+            width: 34,
+            height: 34,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.help_outline, color: AppColors.white, size: 20),
+          ),
+        ),
+      ]),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
@@ -93,11 +121,12 @@ class _PaidVehiclePickerScreenState extends State<PaidVehiclePickerScreen> {
                               style: AppTextStyles.titleSmall
                                   .copyWith(fontSize: 15, fontWeight: FontWeight.w800)),
                           const SizedBox(height: 12),
-                          for (final v in _vehicles) ...[
+                          for (var i = 0; i < _vehicles.length; i++) ...[
                             _VehicleCard(
-                              vehicle: v,
-                              typeLabel: _typeLabel(v['vehicle_type']?.toString()),
-                              onTap: () => _openTarget(v),
+                              vehicle: _vehicles[i],
+                              typeLabel: _typeLabel(_vehicles[i]['vehicle_type']?.toString()),
+                              onTap: () => _openTarget(_vehicles[i]),
+                              tourKey: i == 0 ? _tourKeyCard : null,
                             ),
                             const SizedBox(height: 12),
                           ],
@@ -126,11 +155,13 @@ class _VehicleCard extends StatelessWidget {
     required this.vehicle,
     required this.typeLabel,
     required this.onTap,
+    this.tourKey,
   });
 
   final Map<String, dynamic> vehicle;
   final String typeLabel;
   final VoidCallback onTap;
+  final GlobalKey? tourKey;
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +179,7 @@ class _VehicleCard extends StatelessWidget {
       if (year.isNotEmpty) 'ປີ $year',
     ];
 
-    return InkWell(
+    final card = InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -192,6 +223,17 @@ class _VehicleCard extends StatelessWidget {
         ),
       ),
     );
+
+    return tourKey == null
+        ? card
+        : Showcase(
+            key: tourKey!,
+            title: 'ເລືອກລົດ',
+            description: 'ກົດເລືອກລົດທີ່ທ່ານຕ້ອງການດຳເນີນການຕໍ່',
+            targetBorderRadius: BorderRadius.circular(20),
+            tooltipActions: CoachMarkTour.lastStepActions(context),
+            child: card,
+          );
   }
 }
 

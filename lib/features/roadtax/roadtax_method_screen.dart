@@ -1,11 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
+import '../../core/services/coach_mark_tour.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
 
-class RoadtaxMethodScreen extends StatelessWidget {
+class RoadtaxMethodScreen extends StatefulWidget {
   final Map<String, dynamic> vehicle;
   const RoadtaxMethodScreen({super.key, required this.vehicle});
+
+  @override
+  State<RoadtaxMethodScreen> createState() => _RoadtaxMethodScreenState();
+}
+
+class _RoadtaxMethodScreenState extends State<RoadtaxMethodScreen> {
+  static const _tourSeenPrefKey = 'roadtax_method_tour_seen';
+  final _tourKeyApp = GlobalKey();
+  final _tourKeyUpload = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    CoachMarkTour.maybeStart(prefKey: _tourSeenPrefKey, start: _startTour);
+  }
+
+  void _startTour() {
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_tourKeyApp, _tourKeyUpload]);
+  }
 
   String _typeLabel(String? type) => switch (type) {
         'motorcycle' => 'ລົດຈັກ',
@@ -21,6 +43,7 @@ class RoadtaxMethodScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vehicle = widget.vehicle;
     final plate = vehicle['plate_number']?.toString() ?? '—';
     final province = vehicle['province']?.toString();
     final plateType = vehicle['plate_type']?.toString();
@@ -31,7 +54,21 @@ class RoadtaxMethodScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MgHeader(title: 'ເສຍຄ່າທາງ'),
+      appBar: MgHeader(title: 'ເສຍຄ່າທາງ', actions: [
+        GestureDetector(
+          onTap: _startTour,
+          child: Container(
+            width: 34,
+            height: 34,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.help_outline, color: AppColors.white, size: 20),
+          ),
+        ),
+      ]),
       body: ListView(
         padding: const EdgeInsets.all(22),
         children: [
@@ -57,20 +94,33 @@ class RoadtaxMethodScreen extends StatelessWidget {
           Text('ທ່ານຈະຈ່າຍໃນແອບ ຫຼື ໄດ້ຈ່າຍຢູ່ພະແນກຂົນສົ່ງມາກ່ອນແລ້ວ?',
               style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
           const SizedBox(height: 16),
-          _methodCard(
-            context,
-            icon: Icons.credit_card,
+          Showcase(
+            key: _tourKeyApp,
             title: 'ຈ່າຍໃນແອບ',
-            subtitle: 'ຄິດໄລ່ລາຄາອັດຕະໂນມັດ ແລະ ຈ່າຍຜ່ານແອບໄດ້ທັນທີ',
-            onTap: () => Navigator.of(context).pushNamed('/roadtax/year', arguments: vehicle),
+            description: 'ລະບົບຄິດໄລ່ລາຄາອັດຕະໂນມັດຕາມປະເພດລົດ ແລະ ໃຫ້ທ່ານຈ່າຍຜ່ານແອບໄດ້ທັນທີ',
+            targetBorderRadius: BorderRadius.circular(16),
+            child: _methodCard(
+              context,
+              icon: Icons.credit_card,
+              title: 'ຈ່າຍໃນແອບ',
+              subtitle: 'ຄິດໄລ່ລາຄາອັດຕະໂນມັດ ແລະ ຈ່າຍຜ່ານແອບໄດ້ທັນທີ',
+              onTap: () => Navigator.of(context).pushNamed('/roadtax/year', arguments: vehicle),
+            ),
           ),
           const SizedBox(height: 12),
-          _methodCard(
-            context,
-            icon: Icons.upload_file,
+          Showcase(
+            key: _tourKeyUpload,
             title: 'ອັບໂຫລດຫຼັກຖານ',
-            subtitle: 'ຖ້າທ່ານໄດ້ຈ່າຍຄ່າທາງຢູ່ພະແນກຂົນສົ່ງມາກ່ອນແລ້ວ',
-            onTap: () => Navigator.of(context).pushNamed('/roadtax/upload', arguments: vehicle),
+            description: 'ຖ້າທ່ານໄດ້ຈ່າຍຄ່າທາງຢູ່ພະແນກຂົນສົ່ງມາກ່ອນແລ້ວ ອັບໂຫລດຫຼັກຖານໄດ້ທີ່ນີ້',
+            targetBorderRadius: BorderRadius.circular(16),
+            tooltipActions: CoachMarkTour.lastStepActions(context),
+            child: _methodCard(
+              context,
+              icon: Icons.upload_file,
+              title: 'ອັບໂຫລດຫຼັກຖານ',
+              subtitle: 'ຖ້າທ່ານໄດ້ຈ່າຍຄ່າທາງຢູ່ພະແນກຂົນສົ່ງມາກ່ອນແລ້ວ',
+              onTap: () => Navigator.of(context).pushNamed('/roadtax/upload', arguments: vehicle),
+            ),
           ),
         ],
       ),
