@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.100.8:3000/api/v1',
+    defaultValue: 'https://motogate-api.onrender.com/api/v1',
   );
 
   /// Plain server origin (no `/api/v1` suffix), used to build links like
@@ -23,8 +23,9 @@ class ApiClient {
   static Dio _build() {
     final dio = Dio(BaseOptions(
       baseUrl: _baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
     ));
 
