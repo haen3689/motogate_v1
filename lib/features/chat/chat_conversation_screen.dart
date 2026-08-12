@@ -38,8 +38,12 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
       final me = await ApiAuthService.me();
       final userId = me['id'] as int?;
       if (userId == null) return;
-      _subscription = ChatService.subscribe(userId);
-      _subscription!.messages.listen((msg) {
+
+      // ✅ เพิ่ม await เนื่องจาก ChatService.subscribe เป็น Future<ChatSubscription?>
+      _subscription = await ChatService.subscribe(userId);
+
+      // ✅ ตรวจสอบ null ก่อนเริ่ม listen stream
+      _subscription?.messages.listen((msg) {
         if (!mounted) return;
         if (_messages.any((m) => m.id == msg.id)) return;
         setState(() => _messages.add(msg));
@@ -106,16 +110,22 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
             Expanded(
               child: Text(
                 'ຕອນນີ້ມີຜູ້ໃຊ້ຈຳນວນຫຼາຍກຳລັງລໍຖ້າ ພະນັກງານອາດຕອບຊ້າກວ່າປົກກະຕິ ກະລຸນາລໍຖ້າບ່ອນດຽວ',
-                style: TextStyle(fontSize: 11.5, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF92400E),
+                    fontWeight: FontWeight.w600),
               ),
             ),
           ]),
         ),
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary))
               : _messages.isEmpty
-                  ? const Center(child: Text('ສົ່ງຂໍ້ຄວາມມາຫາພວກເຮົາໄດ້ເລີຍ', style: TextStyle(color: AppColors.grey500)))
+                  ? const Center(
+                      child: Text('ສົ່ງຂໍ້ຄວາມມາຫາພວກເຮົາໄດ້ເລີຍ',
+                          style: TextStyle(color: AppColors.grey500)))
                   : ListView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.all(16),
@@ -125,19 +135,24 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         ),
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(color: AppColors.white, border: Border(top: BorderSide(color: AppColors.grey100))),
+          decoration: const BoxDecoration(
+              color: AppColors.white,
+              border: Border(top: BorderSide(color: AppColors.grey100))),
           child: SafeArea(
             top: false,
             child: Row(children: [
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(24)),
+                  decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(24)),
                   child: TextField(
                     controller: _controller,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
-                    decoration: const InputDecoration(hintText: 'ພິມຂໍ້ຄວາມ...', border: InputBorder.none),
+                    decoration: const InputDecoration(
+                        hintText: 'ພິມຂໍ້ຄວາມ...', border: InputBorder.none),
                   ),
                 ),
               ),
@@ -147,13 +162,16 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
                 child: Container(
                   width: 44,
                   height: 44,
-                  decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                      color: AppColors.primary, shape: BoxShape.circle),
                   child: _sending
                       ? const Padding(
                           padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.white),
                         )
-                      : const Icon(Icons.send, color: AppColors.white, size: 20),
+                      : const Icon(Icons.send,
+                          color: AppColors.white, size: 20),
                 ),
               ),
             ]),
@@ -168,20 +186,26 @@ class _ChatConversationScreenState extends State<ChatConversationScreen> {
         child: Align(
           alignment: m.fromUser ? Alignment.centerRight : Alignment.centerLeft,
           child: Column(
-            crossAxisAlignment: m.fromUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment:
+                m.fromUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Container(
                 constraints: const BoxConstraints(maxWidth: 280),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: m.fromUser ? AppColors.primary : AppColors.white,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(m.body, style: TextStyle(fontSize: 14, color: m.fromUser ? AppColors.white : AppColors.black)),
+                child: Text(m.body,
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: m.fromUser ? AppColors.white : AppColors.black)),
               ),
               const SizedBox(height: 3),
               Text(DateFormat('HH:mm').format(m.createdAt.toLocal()),
-                  style: const TextStyle(fontSize: 10, color: AppColors.grey400)),
+                  style:
+                      const TextStyle(fontSize: 10, color: AppColors.grey400)),
             ],
           ),
         ),

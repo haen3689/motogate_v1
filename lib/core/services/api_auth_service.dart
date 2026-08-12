@@ -6,14 +6,27 @@ import 'api_client.dart';
 class ApiAuthService {
   static final _dio = ApiClient.instance;
 
-  /// ຂໍ OTP ຈາກ Rails → Rails ສົ່ງ SMS ຜ່ານ Telbiz
-  static Future<void> requestOtp(String phoneNumber) async {
-    await _dio.post('/auth/request_otp', data: {
-      'phone_number': phoneNumber,
-    });
+  /// ขอ OTP จาก Rails → Rails ส่ง SMS ผ่าน Telbiz
+  static Future<bool> requestOtp(String phoneNumber) async {
+    try {
+      final response = await _dio.post('/auth/request_otp', data: {
+        'phone_number': phoneNumber,
+      });
+      return response.statusCode == 200 || response.statusCode == 201;
+    } on DioException catch (e) {
+      print('Request OTP failed');
+      print('  uri: ${e.requestOptions.uri}');
+      print('  method: ${e.requestOptions.method}');
+      print('  type: ${e.type}');
+      print('  message: ${e.message}');
+      print('  error: ${e.error}');
+      print('  response status: ${e.response?.statusCode}');
+      print('  response data: ${e.response?.data}');
+      rethrow; // ส่ง Exception ต่อให้ UI จัดการแสดงผล
+    }
   }
 
-  /// ຢືນຢັນ OTP → ໄດ້ JWT token
+  /// ยืนยัน OTP → ได้ JWT token
   static Future<Map<String, dynamic>> verifyOtp({
     required String phoneNumber,
     required String otp,
@@ -28,7 +41,7 @@ class ApiAuthService {
     return data['user'] as Map<String, dynamic>;
   }
 
-  /// Login ດ້ວຍ phone number ຫຼັງຈາກ Telbiz OTP verified
+  /// Login ด้วย phone number หลังจาก Telbiz OTP verified
   static Future<Map<String, dynamic>> loginPhone(String phoneNumber) async {
     final res = await _dio.post('/auth/login_phone', data: {
       'phone_number': phoneNumber,
@@ -39,13 +52,13 @@ class ApiAuthService {
     return data['user'] as Map<String, dynamic>;
   }
 
-  /// ຂໍຂໍ້ມູນ user ປັດຈຸບັນ
+  /// ขอข้อมูล user ปัจจุบัน
   static Future<Map<String, dynamic>> me() async {
     final res = await _dio.get('/auth/me');
     return res.data['data'] as Map<String, dynamic>;
   }
 
-  /// ສົ່ງ FCM token ໄປ Rails
+  /// ส่ง FCM token ไป Rails
   static Future<void> registerDevice(String fcmToken) async {
     await _dio.post('/auth/register_device', data: {
       'fcm_token': fcmToken,
@@ -110,12 +123,8 @@ class ApiAuthService {
     return res.data['data']['user'] as Map<String, dynamic>;
   }
 
-  /// Requests a short-lived, single-purpose token for the "QR CODE
-  /// ເອກະສານ" verification page (scanned by a third party, not this
-  /// device) — separate from the long-lived login token. When [vehicleId]
-  /// is given, the resulting verification page is scoped to just that
-  /// vehicle instead of all of the user's vehicles.
-  static Future<Map<String, dynamic>> requestVerifyToken({dynamic vehicleId}) async {
+  static Future<Map<String, dynamic>> requestVerifyToken(
+      {dynamic vehicleId}) async {
     final res = await _dio.post('/auth/verify_token', data: {
       if (vehicleId != null) 'vehicle_id': vehicleId,
     });
@@ -125,6 +134,10 @@ class ApiAuthService {
   static Future<void> logout() => ApiClient.clearToken();
 
   static String errorMessage(DioException e) {
+    if (e.type == DioExceptionType.connectionError ||
+        e.error.toString().contains('connection reset by peer')) {
+      return 'ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບເຊີເວີໄດ້ (Connection Reset) ກະລຸນາກົດลองใหม่อีกครั้ง';
+    }
     final data = e.response?.data;
     if (data is Map && data['error'] != null) return data['error'].toString();
     return 'ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່';

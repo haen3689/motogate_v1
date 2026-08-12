@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/api_auth_service.dart';
@@ -13,7 +14,8 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  final List<TextEditingController> _c = List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _c =
+      List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _f = List.generate(6, (_) => FocusNode());
   Timer? _timer;
   int _sec = 59;
@@ -29,7 +31,8 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     _phone = args?['phone'];
   }
 
@@ -37,7 +40,10 @@ class _OtpScreenState extends State<OtpScreen> {
     _timer?.cancel();
     _sec = 59;
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) { t.cancel(); return; }
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       setState(() => _sec--);
       if (_sec <= 0) t.cancel();
     });
@@ -50,15 +56,20 @@ class _OtpScreenState extends State<OtpScreen> {
     if (!_ok || _loading || _phone == null) return;
     setState(() => _loading = true);
     try {
-      await ApiAuthService.verifyOtp(phoneNumber: _phone!, otp: _otp);
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/terms', (_) => false);
+      final user = await ApiAuthService.verifyOtp(phoneNumber: _phone!, otp: _otp);
+      await AuthService.signInAnonymously().catchError((_) {});
+      await AnalyticsService.logLogin().catchError((_) {});
+      final token = await FcmService.getToken();
+      if (token != null) {
+        await ApiAuthService.registerDevice(token).catchError((_) {});
       }
-      AuthService.signInAnonymously().catchError((_) {});
-      AnalyticsService.logLogin().catchError((_) {});
-      FcmService.getToken().then((token) {
-        if (token != null) ApiAuthService.registerDevice(token).catchError((_) {});
-      });
+      // ຜູ້ໃຊ້ທີ່ເຄີຍປ້ອນໂປຣໄຟລ໌ຄົບແລ້ວ (ມີ first_name) ບໍ່ຕ້ອງຜ່ານ terms/setup ຊ້ຳ
+      final hasProfile =
+          (user['first_name'] as String?)?.trim().isNotEmpty ?? false;
+      final nextRoute = hasProfile ? '/home' : '/terms';
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(nextRoute, (_) => false);
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -69,7 +80,9 @@ class _OtpScreenState extends State<OtpScreen> {
         });
         _f[0].requestFocus();
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
+          content: Text(e is DioException
+              ? ApiAuthService.errorMessage(e)
+              : e.toString().replaceAll('Exception: ', '')),
           backgroundColor: Colors.red,
         ));
       }
@@ -85,7 +98,9 @@ class _OtpScreenState extends State<OtpScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
+          content: Text(e is DioException
+              ? ApiAuthService.errorMessage(e)
+              : e.toString().replaceAll('Exception: ', '')),
           backgroundColor: Colors.red,
         ));
       }
@@ -106,8 +121,7 @@ class _OtpScreenState extends State<OtpScreen> {
     super.dispose();
   }
 
-  String get _countdown =>
-      '00:${_sec.toString().padLeft(2, '0')}';
+  String get _countdown => '00:${_sec.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -127,9 +141,13 @@ class _OtpScreenState extends State<OtpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('powered by',
-                          style: TextStyle(fontSize: 10, color: AppColors.grey300)),
+                          style: TextStyle(
+                              fontSize: 10, color: AppColors.grey300)),
                       Text('Bluestarinfinity',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.black)),
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.black)),
                     ],
                   ),
                 ),
@@ -152,7 +170,10 @@ class _OtpScreenState extends State<OtpScreen> {
 
               // Title
               const Text('ຢືນຢັນ OTP',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.black)),
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.black)),
               const SizedBox(height: 8),
 
               // Subtitle
@@ -196,17 +217,21 @@ class _OtpScreenState extends State<OtpScreen> {
                     const SizedBox(height: 6),
                     // Hint
                     const Text('ກະລຸນາໃສ່ລະຫັດ OTP 6 ຕົວເລກ',
-                        style: TextStyle(fontSize: 13, color: AppColors.grey400)),
+                        style:
+                            TextStyle(fontSize: 13, color: AppColors.grey400)),
                     const SizedBox(height: 15),
 
                     // OTP boxes — Expanded so they fit any screen width
                     Row(
-                      children: List.generate(6, (i) => Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: i < 5 ? 6 : 0),
-                          child: _otpBox(i),
-                        ),
-                      )),
+                      children: List.generate(
+                          6,
+                          (i) => Expanded(
+                                child: Padding(
+                                  padding:
+                                      EdgeInsets.only(right: i < 5 ? 6 : 0),
+                                  child: _otpBox(i),
+                                ),
+                              )),
                     ),
                     const SizedBox(height: 20),
 
@@ -215,21 +240,27 @@ class _OtpScreenState extends State<OtpScreen> {
                       width: 290,
                       height: 54,
                       child: _loading
-                          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.primary))
                           : ElevatedButton(
                               onPressed: _ok ? _verify : null,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _ok ? AppColors.primary : AppColors.grey100,
+                                backgroundColor:
+                                    _ok ? AppColors.primary : AppColors.grey100,
                                 foregroundColor: AppColors.white,
                                 elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
                               ),
                               child: Text(
                                 'ຢືນຢັນ  →',
                                 style: TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w700,
-                                    color: _ok ? AppColors.white : AppColors.grey300),
+                                    color: _ok
+                                        ? AppColors.white
+                                        : AppColors.grey300),
                               ),
                             ),
                     ),
@@ -250,7 +281,9 @@ class _OtpScreenState extends State<OtpScreen> {
                         style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: _sec <= 0 ? AppColors.primary : AppColors.grey300)),
+                            color: _sec <= 0
+                                ? AppColors.primary
+                                : AppColors.grey300)),
                   ),
                 ],
               ),
@@ -288,11 +321,13 @@ class _OtpScreenState extends State<OtpScreen> {
             fillColor: AppColors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+              borderSide:
+                  const BorderSide(color: AppColors.primaryLight, width: 1.5),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+              borderSide:
+                  const BorderSide(color: AppColors.primaryLight, width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),

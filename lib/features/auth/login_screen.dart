@@ -16,12 +16,16 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _ok = false;
   bool _loading = false;
 
+  String get _normalizedDigits {
+    final digits = _pc.text.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.replaceFirst(RegExp(r'^0+'), '');
+  }
+
   @override
   void initState() {
     super.initState();
     _pc.addListener(() {
-      final digits = _pc.text.replaceAll(RegExp(r'[^0-9]'), '');
-      setState(() => _ok = digits.length >= 8);
+      setState(() => _ok = _normalizedDigits.length >= 10);
     });
   }
 
@@ -35,8 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_ok || _loading) return;
     setState(() => _loading = true);
 
-    final digits = _pc.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
-    final phone = '+856$digits';
+    final phone = '+856$_normalizedDigits';
 
     try {
       await ApiAuthService.requestOtp(phone);
