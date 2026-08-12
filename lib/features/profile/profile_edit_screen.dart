@@ -149,9 +149,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() {
       if (field == 'profile') {
         _profileImageFile = file;
-      } else if (field == 'id_card')
+      } else if (field == 'id_card') {
         _idCardImageFile = file;
-      else if (field == 'license') _licenseImageFile = file;
+      } else if (field == 'license') {
+        _licenseImageFile = file;
+      }
     });
   }
 
@@ -181,10 +183,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() {
       if (field == 'dob') {
         _dob = picked;
-      } else if (field == 'id_expiry')
+      } else if (field == 'id_expiry') {
         _idExpiry = picked;
-      else
+      } else {
         _licenseExpiry = picked;
+      }
     });
   }
 
