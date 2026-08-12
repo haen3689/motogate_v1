@@ -11,7 +11,12 @@ import '../../core/services/plate_type_cache.dart';
 import '../../core/models/plate_type_model.dart';
 
 class ScanOcrScreen extends StatefulWidget {
-  const ScanOcrScreen({super.key});
+  const ScanOcrScreen({super.key, this.vehicle});
+
+  /// When set, the form edits this existing vehicle instead of creating a
+  /// new one — prefilled from its current data.
+  final Map<String, dynamic>? vehicle;
+
   @override
   State<ScanOcrScreen> createState() => _ScanOcrScreenState();
 }
@@ -109,11 +114,39 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
   final _tourKeyPhotos = GlobalKey();
   final _tourKeyTechnical = GlobalKey();
 
+  bool get _isEditing => widget.vehicle != null;
+
   @override
   void initState() {
     super.initState();
     _loadPlateTypes();
-    _maybeStartTour();
+    _prefillFromExisting();
+    if (!_isEditing) _maybeStartTour();
+  }
+
+  void _prefillFromExisting() {
+    final v = widget.vehicle;
+    if (v == null) return;
+    _plateCtrl.text = v['plate_number']?.toString() ?? '';
+    _brandCtrl.text = v['brand']?.toString() ?? '';
+    _modelCtrl.text = v['model']?.toString() ?? '';
+    _yearCtrl.text = v['year']?.toString() ?? '';
+    _colorCtrl.text = v['color']?.toString() ?? '';
+    _engineCtrl.text = v['engine_number']?.toString() ?? '';
+    _chassisCtrl.text = v['chassis_number']?.toString() ?? '';
+    _ccCtrl.text = v['cc']?.toString() ?? '';
+    _ownerNameCtrl.text = v['owner_name']?.toString() ?? '';
+    _seatCountCtrl.text = v['seat_count']?.toString() ?? '';
+    _weightCtrl.text = v['weight']?.toString() ?? '';
+    _vehicleType = v['vehicle_type']?.toString();
+    _plateType = v['plate_type']?.toString();
+    _province = v['province']?.toString();
+    _usageType = v['usage_type']?.toString();
+    _fuelType = v['fuel_type']?.toString();
+    _axleCount = v['axle_count']?.toString();
+    _cylinderCount = v['cylinder_count']?.toString();
+    _registrationExpiryDate =
+        DateTime.tryParse(v['registration_expiry_date']?.toString() ?? '');
   }
 
   Future<void> _maybeStartTour() =>
@@ -153,10 +186,47 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
   // ── Save ──────────────────────────────────────────────────────────────────
   bool get _valid => _plateCtrl.text.trim().isNotEmpty && _vehicleType != null;
 
+  String? get _registrationExpiryDateStr => _registrationExpiryDate == null
+      ? null
+      : '${_registrationExpiryDate!.year.toString().padLeft(4, '0')}-'
+          '${_registrationExpiryDate!.month.toString().padLeft(2, '0')}-'
+          '${_registrationExpiryDate!.day.toString().padLeft(2, '0')}';
+
   Future<void> _save() async {
     if (!_valid || _saving) return;
     setState(() => _saving = true);
     try {
+      if (_isEditing) {
+        final updated = await ApiVehicleService.update(
+          widget.vehicle!['id'],
+          plateNumber: _plateCtrl.text.trim(),
+          brand: _brandCtrl.text.trim(),
+          model: _modelCtrl.text.trim(),
+          year: _yearCtrl.text.trim(),
+          color: _colorCtrl.text.trim(),
+          vehicleType: _vehicleType,
+          engineNumber: _engineCtrl.text.trim(),
+          chassisNumber: _chassisCtrl.text.trim(),
+          cc: _ccCtrl.text.trim(),
+          province: _province,
+          plateType: _plateType,
+          usageType: _usageType,
+          ownerName: _ownerNameCtrl.text.trim(),
+          fuelType: _fuelType,
+          seatCount: _seatCountCtrl.text.trim(),
+          axleCount: _axleCount,
+          cylinderCount: _cylinderCount,
+          weight: _weightCtrl.text.trim(),
+          registrationExpiryDate: _registrationExpiryDateStr,
+          registrationFront: _frontImage,
+          registrationBack: _backImage,
+          frontPhoto: _vehiclePhoto,
+          transportBooklet: _transportBooklet,
+        );
+        if (mounted) Navigator.of(context).pop(updated);
+        return;
+      }
+
       final created = await ApiVehicleService.create(
         plateNumber: _plateCtrl.text.trim(),
         brand: _brandCtrl.text.trim(),
@@ -176,11 +246,7 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
         axleCount: _axleCount,
         cylinderCount: _cylinderCount,
         weight: _weightCtrl.text.trim(),
-        registrationExpiryDate: _registrationExpiryDate == null
-            ? null
-            : '${_registrationExpiryDate!.year.toString().padLeft(4, '0')}-'
-                '${_registrationExpiryDate!.month.toString().padLeft(2, '0')}-'
-                '${_registrationExpiryDate!.day.toString().padLeft(2, '0')}',
+        registrationExpiryDate: _registrationExpiryDateStr,
         registrationFront: _frontImage,
         registrationBack: _backImage,
         frontPhoto: _vehiclePhoto,
@@ -209,21 +275,26 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F7),
-      appBar: MgHeader(title: 'ກອກຂໍ້ມູນດ້ວຍຕົນເອງ', actions: [
-        GestureDetector(
-          onTap: _startTour,
-          child: Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.help_outline,
-                color: AppColors.white, size: 20),
-          ),
-        ),
-      ]),
+      appBar: MgHeader(
+        title: _isEditing ? 'ແກ້ໄຂຂໍ້ມູນລົດ' : 'ກອກຂໍ້ມູນດ້ວຍຕົນເອງ',
+        actions: _isEditing
+            ? null
+            : [
+                GestureDetector(
+                  onTap: _startTour,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.help_outline,
+                        color: AppColors.white, size: 20),
+                  ),
+                ),
+              ],
+      ),
       body: _buildForm(),
     );
   }
@@ -399,7 +470,7 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
               ? const Center(
                   child: CircularProgressIndicator(color: AppColors.primary))
               : MgButton(
-                  label: 'ບັນທຶກຂໍ້ມູນລົດ',
+                  label: _isEditing ? 'ບັນທຶກການແກ້ໄຂ' : 'ບັນທຶກຂໍ້ມູນລົດ',
                   variant: _valid
                       ? MgButtonVariant.primary
                       : MgButtonVariant.disabled,

@@ -118,6 +118,81 @@ class ApiVehicleService {
     }
   }
 
+  static Future<Map<String, dynamic>> update(
+    dynamic vehicleId, {
+    String? plateNumber,
+    String? brand,
+    String? model,
+    String? year,
+    String? color,
+    String? vehicleType,
+    String? engineNumber,
+    String? chassisNumber,
+    String? cc,
+    String? province,
+    String? plateType,
+    String? usageType,
+    String? ownerName,
+    String? fuelType,
+    String? seatCount,
+    String? axleCount,
+    String? cylinderCount,
+    String? weight,
+    String? registrationExpiryDate,
+    File? registrationFront,
+    File? registrationBack,
+    File? frontPhoto,
+    File? transportBooklet,
+  }) async {
+    final fields = {
+      if (plateNumber != null && plateNumber.isNotEmpty) 'plate_number': plateNumber,
+      if (brand != null && brand.isNotEmpty)             'brand':          brand,
+      if (model != null && model.isNotEmpty)             'model':          model,
+      if (year != null && year.isNotEmpty)               'year':           year,
+      if (color != null && color.isNotEmpty)             'color':          color,
+      if (vehicleType != null && vehicleType.isNotEmpty) 'vehicle_type':   vehicleType,
+      if (engineNumber != null && engineNumber.isNotEmpty) 'engine_number': engineNumber,
+      if (chassisNumber != null && chassisNumber.isNotEmpty) 'chassis_number': chassisNumber,
+      if (cc != null && cc.isNotEmpty)                   'cc':             cc,
+      if (province != null && province.isNotEmpty)       'province':       province,
+      if (plateType != null && plateType.isNotEmpty)     'plate_type':     plateType,
+      if (usageType != null && usageType.isNotEmpty)     'usage_type':     usageType,
+      if (ownerName != null && ownerName.isNotEmpty)     'owner_name':     ownerName,
+      if (fuelType != null && fuelType.isNotEmpty)       'fuel_type':      fuelType,
+      if (seatCount != null && seatCount.isNotEmpty)     'seat_count':     seatCount,
+      if (axleCount != null && axleCount.isNotEmpty)     'axle_count':     axleCount,
+      if (cylinderCount != null && cylinderCount.isNotEmpty) 'cylinder_count': cylinderCount,
+      if (weight != null && weight.isNotEmpty)           'weight':         weight,
+      if (registrationExpiryDate != null && registrationExpiryDate.isNotEmpty)
+        'registration_expiry_date': registrationExpiryDate,
+    };
+
+    final hasFiles = registrationFront != null ||
+        registrationBack != null ||
+        frontPhoto != null ||
+        transportBooklet != null;
+
+    if (hasFiles) {
+      final form = FormData.fromMap({
+        ...fields,
+        if (registrationFront != null)
+          'registration_front': await MultipartFile.fromFile(registrationFront.path),
+        if (registrationBack != null)
+          'registration_back': await MultipartFile.fromFile(registrationBack.path),
+        if (frontPhoto != null)
+          'front_photo': await MultipartFile.fromFile(frontPhoto.path),
+        if (transportBooklet != null)
+          'transport_booklet': await MultipartFile.fromFile(transportBooklet.path),
+      });
+      final res = await _dio.patch('/vehicles/$vehicleId', data: form,
+          options: Options(contentType: 'multipart/form-data'));
+      return res.data['data'] as Map<String, dynamic>;
+    } else {
+      final res = await _dio.patch('/vehicles/$vehicleId', data: fields);
+      return res.data['data'] as Map<String, dynamic>;
+    }
+  }
+
   /// Creates a pending BCEL OnePay Payment for the vehicle's one-time
   /// platform registration fee. fee_paid only flips true server-side once
   /// BCEL actually confirms the payment — this just returns the QR/deeplink.

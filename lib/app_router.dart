@@ -79,6 +79,9 @@ class AppRouter {
         return _r(const AddVehicleScreen(), s);
       case '/vehicle/manual_entry':
         return _r(const ScanOcrScreen(), s);
+      case '/vehicle/edit':
+        final v = s.arguments as Map<String, dynamic>;
+        return _r(ScanOcrScreen(vehicle: v), s);
       case '/vehicle/pay-fee':
         final v = s.arguments as Map<String, dynamic>;
         return _r(VehicleFeePaymentScreen(vehicle: v), s);

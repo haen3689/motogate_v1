@@ -25,6 +25,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
   void initState() {
     super.initState();
     _vehicle = widget.vehicle;
+    PlateTypeCache.instance.load().then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   bool get _isOwner => _vehicle['is_owner'] as bool? ?? true;
@@ -129,6 +132,12 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     }
   }
 
+  Future<void> _editVehicle() async {
+    final updated = await Navigator.of(context)
+        .pushNamed('/vehicle/edit', arguments: _vehicle) as Map<String, dynamic>?;
+    if (updated != null && mounted) setState(() => _vehicle = updated);
+  }
+
   String? _formatDate(String? iso, {bool withTime = false}) {
     if (iso == null || iso.isEmpty) return null;
     final d = DateTime.tryParse(iso);
@@ -163,7 +172,26 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MgHeader(title: 'ລາຍລະອຽດລົດ'),
+      appBar: MgHeader(
+        title: 'ລາຍລະອຽດລົດ',
+        actions: _isOwner
+            ? [
+                GestureDetector(
+                  onTap: _editVehicle,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.edit_outlined,
+                        color: AppColors.white, size: 18),
+                  ),
+                ),
+              ]
+            : null,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(22),
         child: Column(
@@ -200,7 +228,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
             _sectionHeader(Icons.badge_outlined, 'ຂໍ້ມູນທະບຽນ'),
             const SizedBox(height: 8),
             _sectionCard([
-              _infoRow('ປະເພດປ້າຍທະບຽນ', _vehicle['plate_type']?.toString()),
+              _infoRow('ປະເພດປ້າຍທະບຽນ',
+                  PlateTypeCache.instance.find(_vehicle['plate_type']?.toString())?.name ??
+                      _vehicle['plate_type']?.toString()),
               _infoRow('ແຂວງ', _vehicle['province']?.toString()),
               _infoRow('ຊື່ເຈົ້າຂອງລົດ', _vehicle['owner_name']?.toString()),
               _infoRow('ວັນໝົດອາຍຸທະບຽນ',
@@ -361,11 +391,46 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     );
   }
 
-  Widget _photoBox(String url) => ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(url,
-            height: 110, width: double.infinity, fit: BoxFit.cover),
+  Widget _photoBox(String url) => GestureDetector(
+        onTap: () => _viewImage(url),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(url,
+              height: 110, width: double.infinity, fit: BoxFit.cover),
+        ),
       );
+
+  void _viewImage(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(children: [
+          InteractiveViewer(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(url, fit: BoxFit.contain),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
 
   Widget _infoRow(String label, String? value) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
