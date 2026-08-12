@@ -20,6 +20,7 @@ import 'features/insurance/insurance_select_vehicle_screen.dart';
 import 'features/insurance/insurance_company_select_screen.dart';
 import 'features/insurance/insurance_package_list_screen.dart';
 import 'features/insurance/insurance_payment_screen.dart';
+import 'features/insurance/insurance_qr_payment_screen.dart';
 import 'features/insurance/insurance_success_screen.dart';
 import 'features/roadtax/roadtax_method_screen.dart';
 import 'features/roadtax/roadtax_select_year_screen.dart';
@@ -27,11 +28,13 @@ import 'features/roadtax/roadtax_upload_proof_screen.dart';
 import 'features/roadtax/roadtax_upload_payment_screen.dart';
 import 'features/roadtax/roadtax_confirm_screen.dart';
 import 'features/roadtax/roadtax_payment_screen.dart';
+import 'features/roadtax/roadtax_qr_payment_screen.dart';
 import 'features/roadtax/roadtax_success_screen.dart';
 import 'features/inspection/inspection_center_list_screen.dart';
 import 'features/inspection/inspection_select_vehicle_screen.dart';
 import 'features/inspection/inspection_booking_screen.dart';
 import 'features/inspection/inspection_payment_screen.dart';
+import 'features/inspection/inspection_qr_payment_screen.dart';
 import 'features/inspection/inspection_success_screen.dart';
 import 'features/services/service_list_screen.dart';
 import 'features/services/service_detail_screen.dart';
@@ -112,6 +115,16 @@ class AppRouter {
               package: args['package'] as Map<String, dynamic>,
             ),
             s);
+      case '/insurance/qr_payment':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            InsuranceQrPaymentScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              company: args['company'] as Map<String, dynamic>,
+              package: args['package'] as Map<String, dynamic>,
+              insurance: args['insurance'] as Map<String, dynamic>,
+            ),
+            s);
       case '/insurance/success':
         final args = s.arguments as Map<String, dynamic>;
         return _r(
@@ -165,6 +178,14 @@ class AppRouter {
               amount: args['amount'] as num,
             ),
             s);
+      case '/roadtax/qr_payment':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            RoadtaxQrPaymentScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              roadTax: args['roadTax'] as Map<String, dynamic>,
+            ),
+            s);
       case '/roadtax/success':
         final args = s.arguments as Map<String, dynamic>;
         return _r(
@@ -195,6 +216,17 @@ class AppRouter {
               center: args['center'] as Map<String, dynamic>,
               service: args['service'] as Map<String, dynamic>,
               appointmentAt: args['appointmentAt'] as DateTime,
+            ),
+            s);
+      case '/inspection/qr_payment':
+        final args = s.arguments as Map<String, dynamic>;
+        return _r(
+            InspectionQrPaymentScreen(
+              vehicle: args['vehicle'] as Map<String, dynamic>,
+              center: args['center'] as Map<String, dynamic>,
+              service: args['service'] as Map<String, dynamic>,
+              appointmentAt: args['appointmentAt'] as DateTime,
+              inspection: args['inspection'] as Map<String, dynamic>,
             ),
             s);
       case '/inspection/success':

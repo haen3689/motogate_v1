@@ -157,6 +157,52 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
         _DocStatus.missing => const Color(0xFFCA8A04),
       };
 
+  void _showNoDocumentModal({
+    required String title,
+    required String message,
+  }) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: const BoxDecoration(
+                  color: AppColors.primarySurface, shape: BoxShape.circle),
+              child: const Icon(Icons.image_not_supported_outlined,
+                  color: AppColors.primary, size: 28),
+            ),
+            const SizedBox(height: 14),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500)),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: MgButton(
+                label: 'ເຂົ້າໃຈແລ້ວ',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   void _viewImage(String url) {
     showDialog(
       context: context,
@@ -310,13 +356,14 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     final expiry = _user?['license_expiry_date']?.toString();
     final status = _statusFromExpiry(expiry);
     final imageUrl = _user?['license_image_url']?.toString();
+    final licenseName = _user?['license_name']?.toString();
     return _docRow(
       mock: _mockCard(
           bgColor: const Color(0xFF0F5A96),
           bandColor: const Color(0xFF0A3C6C),
           bandLabel: 'ໃບຂັບຂີ່',
           icon: Icons.person),
-      title: 'ໃບຂັບຂີ່',
+      title: licenseName?.isNotEmpty == true ? licenseName! : 'ໃບຂັບຂີ່',
       line1: _user?['license_type'] != null ? 'ປະເພດ: ${_user?['license_type']}' : '',
       line2: expiry != null ? 'ໝົດອາຍຸ: ${_formatDate(expiry)}' : 'ຍັງບໍ່ໄດ້ຕື່ມຂໍ້ມູນ',
       status: status,
@@ -334,6 +381,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   Widget _vehicleRegRow(Map<String, dynamic> v) {
     final plate = v['plate_number']?.toString();
+    final ownerName = v['owner_name']?.toString();
     final frontUrl = v['registration_front_url']?.toString();
     final backUrl = v['registration_back_url']?.toString();
     final hasDocs = (frontUrl?.isNotEmpty ?? false) || (backUrl?.isNotEmpty ?? false);
@@ -343,11 +391,16 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           bandColor: const Color(0xFF5C8BAE),
           bandLabel: 'ໃບທະບຽນລົດ',
           icon: Icons.directions_car),
-      title: 'ທະບຽນລົດ',
+      title: ownerName?.isNotEmpty == true ? ownerName! : 'ທະບຽນລົດ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
       line2: hasDocs ? '' : 'ຍັງບໍ່ໄດ້ຕື່ມຂໍ້ມູນ',
       status: hasDocs ? _DocStatus.valid : _DocStatus.missing,
-      onTap: () => Navigator.of(context).pushNamed('/vehicle/detail', arguments: v),
+      onTap: () => (frontUrl != null && frontUrl.isNotEmpty)
+          ? _viewImage(frontUrl)
+          : _showNoDocumentModal(
+              title: 'ຍັງບໍ່ມີຮູບໃບທະບຽນລົດ',
+              message: 'ອັບໂຫລດຮູບໃບທະບຽນລົດ (ໜ້າ) ໄດ້ທີ່ໜ້າລາຍລະອຽດລົດ',
+            ),
     );
   }
 
@@ -360,6 +413,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
             ? _DocStatus.expired
             : _DocStatus.missing;
     final plate = v['plate_number']?.toString();
+    final stickerNumber = record?['sticker_number']?.toString();
     final stickerPath = record?['sticker']?.toString();
     final stickerUrl =
         stickerPath != null && stickerPath.isNotEmpty ? '${ApiClient.webBaseUrl}$stickerPath' : null;
@@ -370,7 +424,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           bandColor: const Color(0xFF1A8C47),
           bandLabel: 'ກວດກາເຕັກນິກ',
           icon: Icons.fact_check_outlined),
-      title: 'ກວດກາເຕັກນິກ',
+      title: stickerNumber?.isNotEmpty == true ? stickerNumber! : 'ກວດກາເຕັກນິກ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
       line2: record == null
           ? 'ຍັງບໍ່ໄດ້ກວດກາ'
@@ -380,7 +434,10 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
       status: status,
       onTap: () => stickerUrl != null
           ? _viewImage(stickerUrl)
-          : Navigator.of(context).pushNamed('/vehicle/detail', arguments: v),
+          : _showNoDocumentModal(
+              title: 'ຍັງບໍ່ມີຮູບສະຕິກເກີ້',
+              message: 'ຮູບສະຕິກເກີ້ (ຫຼັກຖານກວດແລ້ວ) ຈະຖືກອັບໂຫລດໂດຍສູນກວດສະພາບລົດ',
+            ),
     );
   }
 
@@ -389,17 +446,26 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     final expiry = record?['expired_at']?.toString();
     final status = _statusFromExpiry(expiry);
     final plate = v['plate_number']?.toString();
+    final proofUrl = record?['proof_image_url']?.toString();
+    final taxYear = record?['tax_year']?.toString();
     return _docRow(
       mock: _mockCard(
           bgColor: const Color(0xFF0F9B8E),
           bandColor: const Color(0xFF0A7E72),
           bandLabel: 'ຄ່າທາງ',
-          bigText: record?['tax_year']?.toString()),
-      title: 'ຄ່າທາງ',
+          icon: Icons.receipt_long_outlined),
+      title: taxYear?.isNotEmpty == true ? 'ຄ່າທາງ ປີ $taxYear' : 'ຄ່າທາງ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
       line2: expiry != null ? 'ໝົດອາຍຸ: ${_formatDate(expiry)}' : 'ຍັງບໍ່ໄດ້ຈ່າຍຄ່າທາງ',
       status: status,
-      onTap: () => Navigator.of(context).pushNamed('/vehicle/detail', arguments: v),
+      onTap: () => (proofUrl != null && proofUrl.isNotEmpty)
+          ? _viewImage(proofUrl)
+          : _showNoDocumentModal(
+              title: 'ຍັງບໍ່ມີຫຼັກຖານຄ່າທາງ',
+              message: record == null
+                  ? 'ຍັງບໍ່ໄດ້ຈ່າຍຄ່າທາງສຳລັບລົດຄັນນີ້'
+                  : 'ລາຍການນີ້ຈ່າຍຜ່ານແອບ ບໍ່ມີຮູບຫຼັກຖານແຍກຕ່າງຫາກ',
+            ),
     );
   }
 
@@ -408,17 +474,26 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     final expiry = record?['end_date']?.toString();
     final status = _statusFromExpiry(expiry);
     final plate = v['plate_number']?.toString();
+    final docUrl = record?['document_image_url']?.toString();
+    final certNo = record?['certificate_number']?.toString();
     return _docRow(
       mock: _mockCard(
           bgColor: const Color(0xFF0F5A96),
           bandColor: const Color(0xFF0A3C6C),
           bandLabel: (record?['company']?.toString() ?? 'ປະກັນໄພ').toUpperCase(),
           icon: Icons.shield_outlined),
-      title: 'ປະກັນໄພ',
+      title: certNo ?? 'ປະກັນໄພ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
       line2: expiry != null ? 'ໝົດອາຍຸ: ${_formatDate(expiry)}' : 'ຍັງບໍ່ມີປະກັນໄພ',
       status: status,
-      onTap: () => Navigator.of(context).pushNamed('/vehicle/detail', arguments: v),
+      onTap: () => (docUrl != null && docUrl.isNotEmpty)
+          ? _viewImage(docUrl)
+          : _showNoDocumentModal(
+              title: 'ຍັງບໍ່ມີຮູບໃບຢັ້ງຢືນປະກັນໄພ',
+              message: record == null
+                  ? 'ຍັງບໍ່ໄດ້ຊື້ປະກັນໄພສຳລັບລົດຄັນນີ້'
+                  : 'ອັບໂຫລດຮູບໃບຢັ້ງຢືນປະກັນໄພໄດ້ທີ່ໜ້າລາຍລະອຽດປະກັນໄພ',
+            ),
     );
   }
 
@@ -438,10 +513,12 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     String? statusTourTitle,
     String? statusTourDescription,
   }) {
+    const cardHeight = 122.0;
     final statusWidget = _statusIcon(status);
     final card = GestureDetector(
       onTap: onTap,
       child: Container(
+        height: cardHeight,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -450,49 +527,57 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: IntrinsicHeight(
-          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            SizedBox(width: 140, child: mock),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(title,
-                        style: AppTextStyles.titleSmall.copyWith(fontSize: 17, fontWeight: FontWeight.w800)),
-                    if (line1.isNotEmpty) ...[
-                      const SizedBox(height: 5),
-                      Text(line1, style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
-                    ],
-                    if (line2.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(line2, style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
-                    ],
-                    const SizedBox(height: 7),
-                    Text('status: ${_statusLabel(status)}',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _statusColor(status))),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          SizedBox(width: 140, height: cardHeight, child: mock),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.titleSmall.copyWith(fontSize: 17, fontWeight: FontWeight.w800)),
+                  if (line1.isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Text(line1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
                   ],
-                ),
+                  if (line2.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(line2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
+                  ],
+                  const SizedBox(height: 7),
+                  Text('status: ${_statusLabel(status)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _statusColor(status))),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: statusTourKey == null
-                    ? statusWidget
-                    : Showcase(
-                        key: statusTourKey,
-                        title: statusTourTitle ?? '',
-                        description: statusTourDescription ?? '',
-                        targetShapeBorder: const CircleBorder(),
-                        child: statusWidget,
-                      ),
-              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: statusTourKey == null
+                  ? statusWidget
+                  : Showcase(
+                      key: statusTourKey,
+                      title: statusTourTitle ?? '',
+                      description: statusTourDescription ?? '',
+                      targetShapeBorder: const CircleBorder(),
+                      child: statusWidget,
+                    ),
             ),
-          ]),
-        ),
+          ),
+        ]),
       ),
     );
 

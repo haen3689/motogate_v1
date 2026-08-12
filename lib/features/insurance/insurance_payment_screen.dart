@@ -26,11 +26,14 @@ class InsurancePaymentScreen extends StatefulWidget {
 }
 
 class _InsurancePaymentScreenState extends State<InsurancePaymentScreen> {
+  // Only BCEL ONE is actually wired to a live payment gateway (BCEL
+  // OnePay). The rest stay listed so the choice looks familiar, but are
+  // disabled until a real integration exists for them.
   static const _methods = [
-    {'name': 'LAP NET', 'icon': Icons.account_balance},
-    {'name': 'BCEL ONE', 'icon': Icons.account_balance},
-    {'name': 'APB', 'icon': Icons.account_balance},
-    {'name': 'LDB', 'icon': Icons.account_balance},
+    {'name': 'LAP NET', 'icon': Icons.account_balance, 'enabled': false},
+    {'name': 'BCEL ONE', 'icon': Icons.account_balance, 'enabled': true},
+    {'name': 'APB', 'icon': Icons.account_balance, 'enabled': false},
+    {'name': 'LDB', 'icon': Icons.account_balance, 'enabled': false},
   ];
 
   int _selectedMethod = -1;
@@ -38,28 +41,18 @@ class _InsurancePaymentScreenState extends State<InsurancePaymentScreen> {
 
   num get _price => num.tryParse(widget.package['price']?.toString() ?? '') ?? 0;
 
-  String _iso(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
   Future<void> _pay() async {
     if (_submitting || _selectedMethod < 0) return;
     setState(() => _submitting = true);
     try {
       final vehicleId = int.parse(widget.vehicle['id'].toString());
-      final duration = int.tryParse(widget.package['duration_months']?.toString() ?? '') ?? 12;
-      final start = DateTime.now();
-      final end = DateTime(start.year, start.month + duration, start.day);
       final created = await ApiInsuranceService.create(
         vehicleId: vehicleId,
         company: widget.company['name']?.toString() ?? '',
         package: widget.package['name']?.toString() ?? '',
-        amount: _price,
-        status: 'active',
-        startDate: _iso(start),
-        endDate: _iso(end),
       );
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/insurance/success', (r) => false, arguments: {
+      Navigator.of(context).pushNamed('/insurance/qr_payment', arguments: {
         'insurance': created,
         'vehicle': widget.vehicle,
         'company': widget.company,
@@ -197,33 +190,47 @@ class _InsurancePaymentScreenState extends State<InsurancePaymentScreen> {
   Widget _methodTile(int i) {
     final selected = _selectedMethod == i;
     final m = _methods[i];
-    return GestureDetector(
-      onTap: () => setState(() => _selectedMethod = i),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primarySurface : Colors.white,
-          border: Border.all(color: selected ? AppColors.primary : AppColors.grey100, width: selected ? 1.6 : 1),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(10),
+    final enabled = m['enabled'] as bool;
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: GestureDetector(
+        onTap: enabled ? () => setState(() => _selectedMethod = i) : null,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primarySurface : Colors.white,
+            border: Border.all(color: selected ? AppColors.primary : AppColors.grey100, width: selected ? 1.6 : 1),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(children: [
+            m['name'] == 'BCEL ONE'
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.asset('assets/images/bcel_one.png', width: 38, height: 38, fit: BoxFit.cover),
+                  )
+                : Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySurface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(m['icon'] as IconData, color: AppColors.primary, size: 20),
+                  ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(m['name'] as String,
+                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
+                if (!enabled)
+                  Text('ຍັງບໍ່ຮອງຮັບ', style: AppTextStyles.caption.copyWith(color: AppColors.grey500)),
+              ]),
             ),
-            child: Icon(m['icon'] as IconData, color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(m['name'] as String,
-                style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
-          ),
-          Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: selected ? AppColors.primary : AppColors.grey300, size: 20),
-        ]),
+            if (enabled)
+              Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: selected ? AppColors.primary : AppColors.grey300, size: 20),
+          ]),
+        ),
       ),
     );
   }

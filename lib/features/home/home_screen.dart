@@ -33,7 +33,6 @@ class HomeScreenState extends State<HomeScreen> {
   final _tourKeyRepair = GlobalKey();
   final _tourKeyDealer = GlobalKey();
   final _tourKeyTowing = GlobalKey();
-  final _tourKeyBell = GlobalKey();
   final _tourKeyHotline = GlobalKey();
 
   @override
@@ -232,7 +231,6 @@ class HomeScreenState extends State<HomeScreen> {
       _tourKeyRepair,
       _tourKeyDealer,
       _tourKeyTowing,
-      _tourKeyBell,
       _tourKeyHotline,
     ]);
   }
@@ -279,7 +277,6 @@ class HomeScreenState extends State<HomeScreen> {
 
   String get _phone => _user?['phone_number'] ?? '';
   bool get _verified => _user?['verified'] == true;
-  int get _unreadAnnouncements => (_user?['unread_announcements_count'] as num?)?.toInt() ?? 0;
 
   void _initHotlinePos(Size screenSize) {
     _hotlinePos ??= Offset(
@@ -456,53 +453,6 @@ class HomeScreenState extends State<HomeScreen> {
                         style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF009951))),
                   ),
               ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () async {
-              await Navigator.of(context).pushNamed('/announcements');
-              _loadUser(); // refresh badge count after the list marks itself seen
-            },
-            child: Showcase(
-              key: _tourKeyBell,
-              title: 'ແຈ້ງເຕືອນ & ປະກາດ',
-              description: 'ກົດເບິ່ງປະກາດຫຼ້າສຸດຈາກ MotoGate ໄດ້ທີ່ນີ້ — ຈຸດແດງບອກຈຳນວນທີ່ຍັງບໍ່ໄດ້ອ່ານ',
-              targetShapeBorder: const CircleBorder(),
-              child: Container(
-                width: 34,
-                height: 34,
-                margin: const EdgeInsets.only(right: 8),
-                child: Stack(clipBehavior: Clip.none, children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.notifications_outlined, color: AppColors.white, size: 20),
-                  ),
-                  if (_unreadAnnouncements > 0)
-                    Positioned(
-                      top: -2,
-                      right: -2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                        constraints: const BoxConstraints(minWidth: 17),
-                        decoration: BoxDecoration(
-                          color: AppColors.error,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.primary, width: 1.5),
-                        ),
-                        child: Text(
-                          _unreadAnnouncements > 9 ? '9+' : '$_unreadAnnouncements',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                ]),
-              ),
             ),
           ),
           GestureDetector(

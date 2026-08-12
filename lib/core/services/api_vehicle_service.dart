@@ -5,6 +5,24 @@ import 'api_client.dart';
 class ApiVehicleService {
   static final _dio = ApiClient.instance;
 
+  /// ຄ່າທຳນຽມລົງທະບຽນລົດ ແຍກຕາມປະເພດລົດ — admin ຕັ້ງຄ່າໄດ້ຄົນລະລາຄາຕໍ່ປະເພດ
+  static Future<List<Map<String, dynamic>>> feeRates() async {
+    final res = await _dio.get('/vehicle_fee_rates');
+    final data = res.data['data'];
+    if (data is List) return data.cast<Map<String, dynamic>>();
+    return [];
+  }
+
+  /// ຫາອັດຕາຄ່າທຳນຽມທີ່ກົງກັບປະເພດລົດ — server ຍັງເປັນຄົນຄິດໄລ່ລາຄາທີ່ແທ້ຈິງຕອນສ້າງ payment
+  static num? matchingFeeAmount(List<Map<String, dynamic>> rates, String? vehicleType) {
+    final rate = rates.cast<Map<String, dynamic>?>().firstWhere(
+          (r) => r?['vehicle_type']?.toString() == vehicleType,
+          orElse: () => null,
+        );
+    if (rate == null) return null;
+    return num.tryParse(rate['amount']?.toString() ?? '');
+  }
+
   static Future<List<Map<String, dynamic>>> list() async {
     final res = await _dio.get('/vehicles');
     final data = res.data['data'];
@@ -34,8 +52,13 @@ class ApiVehicleService {
     String? registrationExpiryDate,
     File? registrationFront,
     File? registrationBack,
+    File? frontPhoto,
+    File? transportBooklet,
   }) async {
-    final hasFiles = registrationFront != null || registrationBack != null;
+    final hasFiles = registrationFront != null ||
+        registrationBack != null ||
+        frontPhoto != null ||
+        transportBooklet != null;
     final extraFields = {
       if (ownerName != null && ownerName.isNotEmpty) 'owner_name': ownerName,
       if (fuelType != null && fuelType.isNotEmpty) 'fuel_type': fuelType,
@@ -67,6 +90,10 @@ class ApiVehicleService {
           'registration_front': await MultipartFile.fromFile(registrationFront.path),
         if (registrationBack != null)
           'registration_back': await MultipartFile.fromFile(registrationBack.path),
+        if (frontPhoto != null)
+          'front_photo': await MultipartFile.fromFile(frontPhoto.path),
+        if (transportBooklet != null)
+          'transport_booklet': await MultipartFile.fromFile(transportBooklet.path),
       });
       final res = await _dio.post('/vehicles', data: form,
           options: Options(contentType: 'multipart/form-data'));
@@ -91,10 +118,11 @@ class ApiVehicleService {
     }
   }
 
-  /// Marks a vehicle's one-time platform registration fee as paid, after the
-  /// (mock) payment flow succeeds.
-  static Future<Map<String, dynamic>> markFeePaid(dynamic vehicleId) async {
-    final res = await _dio.put('/vehicles/$vehicleId', data: {'fee_paid': true});
+  /// Creates a pending BCEL OnePay Payment for the vehicle's one-time
+  /// platform registration fee. fee_paid only flips true server-side once
+  /// BCEL actually confirms the payment — this just returns the QR/deeplink.
+  static Future<Map<String, dynamic>> payFee(dynamic vehicleId) async {
+    final res = await _dio.post('/vehicles/$vehicleId/pay_fee');
     return res.data['data'] as Map<String, dynamic>;
   }
 
@@ -104,6 +132,23 @@ class ApiVehicleService {
     final form = FormData.fromMap({'front_photo': await MultipartFile.fromFile(photo.path)});
     final res = await _dio.patch('/vehicles/$vehicleId', data: form,
         options: Options(contentType: 'multipart/form-data'));
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
+  /// ເພີ່ມຜູ້ໃຊ້ສຳຮອງ (ຄອບຄົວ/ຄົນໃນຄອບຄົວ) ໃຫ້ເບິ່ງຂໍ້ມູນລົດຄັນນີ້ໄດ້ (ອ່ານໄດ້
+  /// ຢ່າງດຽວ, ແກ້ໄຂບໍ່ໄດ້). ຜູ້ຖືກເພີ່ມຕ້ອງລົງທະບຽນແອັບໄວ້ກ່ອນແລ້ວ.
+  static Future<Map<String, dynamic>> shareVehicle(
+      dynamic vehicleId, String phoneNumber) async {
+    final res = await _dio.post('/vehicles/$vehicleId/share', data: {
+      'phone_number': phoneNumber,
+    });
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
+  /// ຖອດຜູ້ໃຊ້ສຳຮອງອອກຈາກລົດຄັນນີ້.
+  static Future<Map<String, dynamic>> unshareVehicle(
+      dynamic vehicleId, dynamic userId) async {
+    final res = await _dio.delete('/vehicles/$vehicleId/share/$userId');
     return res.data['data'] as Map<String, dynamic>;
   }
 }

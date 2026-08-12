@@ -19,25 +19,35 @@ class ApiInsuranceService {
     return [];
   }
 
+  /// ດຶງຂໍ້ມູນປະກັນໄພຫຼ້າສຸດ — ໃຊ້ຫຼັງຈ່າຍເງິນສຳເລັດ ເພື່ອໃຫ້ໄດ້ certificate_number/
+  /// start_date/end_date ຕົວຈິງທີ່ server ຄິດໄລ່ຕອນຢືນຢັນການຈ່າຍ (ບໍ່ແມ່ນຄ່າເກົ່າ
+  /// ຕອນສ້າງລາຍການ pending)
+  static Future<Map<String, dynamic>> show(dynamic insuranceId) async {
+    final res = await _dio.get('/insurances/$insuranceId');
+    return res.data['data'] as Map<String, dynamic>;
+  }
+
+  /// ຊື້ປະກັນໄພຜ່ານ BCEL OnePay — ລາຄາຄິດໄລ່ຢູ່ server ຈາກ InsurancePackage
+  /// (company + package name), client ບໍ່ໄດ້ສົ່ງລາຄາ/ວັນທີ່ເອງ. Returns the
+  /// created (pending) insurance merged with its `payment` (QR/deeplink).
   static Future<Map<String, dynamic>> create({
     required int vehicleId,
     required String company,
     required String package,
-    required num amount,
-    required String status,
-    String? startDate,
-    String? endDate,
   }) async {
     final res = await _dio.post('/insurances', data: {
       'vehicle_id': vehicleId,
       'company': company,
       'package': package,
-      'amount': amount,
-      'status': status,
-      if (startDate != null) 'start_date': startDate,
-      if (endDate != null) 'end_date': endDate,
     });
     return res.data['data'] as Map<String, dynamic>;
+  }
+
+  /// ລິ້ງໃບຢັ້ງຢືນປະກັນໄພ (PDF) — ເປີດຜ່ານ browser ພາຍນອກ, ເລີຍຕ້ອງຝັງ token
+  /// ໄວ້ໃນ query param ເພາະເປີດຢູ່ນອກແອບບໍ່ມີ Authorization header ຄືກັນກັບ Dio
+  static Future<String> certificateUrl(dynamic insuranceId) async {
+    final token = await ApiClient.getToken();
+    return '${_dio.options.baseUrl}/insurances/$insuranceId/certificate?token=$token';
   }
 
   /// Attaches a photo of the physical policy document to an insurance the

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/services/api_insurance_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
@@ -19,11 +21,7 @@ class InsuranceSuccessScreen extends StatelessWidget {
     required this.package,
   });
 
-  String get _certNumber {
-    final id = int.tryParse(insurance['id']?.toString() ?? '') ?? 0;
-    final year = DateTime.now().year % 100;
-    return 'BT$year-${id.toString().padLeft(7, '0')}';
-  }
+  String get _certNumber => insurance['certificate_number']?.toString() ?? '—';
 
   String _fmtDate(String? iso) {
     if (iso == null || iso.isEmpty) return '—';
@@ -98,7 +96,14 @@ class InsuranceSuccessScreen extends StatelessWidget {
                 ]),
               ]),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 16),
+            MgButton(
+              label: 'ດາວໂຫລດໃບຢັ້ງຢືນປະກັນໄພ',
+              variant: MgButtonVariant.secondary,
+              icon: Icons.picture_as_pdf_outlined,
+              onPressed: () => _openCertificate(context),
+            ),
+            const SizedBox(height: 12),
             MgButton(
                 label: 'ກັບໜ້າຫຼັກ',
                 onPressed: () =>
@@ -107,6 +112,19 @@ class InsuranceSuccessScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openCertificate(BuildContext context) async {
+    try {
+      final url = await ApiInsuranceService.certificateUrl(insurance['id']);
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('ເປີດໃບຢັ້ງຢືນບໍ່ສຳເລັດ ກະລຸນາລອງໃໝ່'),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   Widget _row(String label, String value) => Row(

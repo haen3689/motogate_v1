@@ -84,12 +84,18 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
 
   File? _frontImage;
   File? _backImage;
+  File? _vehiclePhoto;
+  File? _transportBooklet;
 
   // Matches the official 8-category vehicle type list.
   static const _types = [
     {'value': 'motorcycle', 'label': 'ລົດຈັກ', 'icon': Icons.motorcycle},
     {'value': 'car', 'label': 'ລົດເກັ່ງ', 'icon': Icons.directions_car},
-    {'value': 'pickup', 'label': 'ລົດກະບະ', 'icon': Icons.directions_car_filled},
+    {
+      'value': 'pickup',
+      'label': 'ລົດກະບະ',
+      'icon': Icons.directions_car_filled
+    },
     {'value': 'suv', 'label': 'ລົດຈິບ', 'icon': Icons.terrain},
     {'value': 'van', 'label': 'ລົດຕູ້', 'icon': Icons.airport_shuttle},
     {'value': 'bus', 'label': 'ລົດເມ', 'icon': Icons.directions_bus},
@@ -177,6 +183,8 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
                 '${_registrationExpiryDate!.day.toString().padLeft(2, '0')}',
         registrationFront: _frontImage,
         registrationBack: _backImage,
+        frontPhoto: _vehiclePhoto,
+        transportBooklet: _transportBooklet,
       );
       if (mounted) {
         Navigator.of(context)
@@ -211,7 +219,8 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
               color: AppColors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.help_outline, color: AppColors.white, size: 20),
+            child: const Icon(Icons.help_outline,
+                color: AppColors.white, size: 20),
           ),
         ),
       ]),
@@ -323,12 +332,28 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
             if (f != null) setState(() => _frontImage = File(f.path));
           }),
           const SizedBox(height: 12),
-          _docUploadLabel('ໃບທະບຽນລົດ (ຫຼັງ)'),
+          _docUploadLabel('ຂໍ້ມູນປື້ມເຫລືອງ'),
           const SizedBox(height: 6),
           _docUploadBox(_backImage, () async {
             final f = await ImagePicker()
                 .pickImage(source: ImageSource.camera, imageQuality: 80);
             if (f != null) setState(() => _backImage = File(f.path));
+          }),
+          const SizedBox(height: 12),
+          _docUploadLabel('ຮູບລົດ (ພາຍນອກ)'),
+          const SizedBox(height: 6),
+          _docUploadBox(_vehiclePhoto, () async {
+            final f = await ImagePicker()
+                .pickImage(source: ImageSource.camera, imageQuality: 80);
+            if (f != null) setState(() => _vehiclePhoto = File(f.path));
+          }),
+          const SizedBox(height: 12),
+          _docUploadLabel('ປື້ມຂົນສົ່ງ'),
+          const SizedBox(height: 6),
+          _docUploadBox(_transportBooklet, () async {
+            final f = await ImagePicker()
+                .pickImage(source: ImageSource.camera, imageQuality: 80);
+            if (f != null) setState(() => _transportBooklet = File(f.path));
           }),
           const SizedBox(height: 24),
           const Divider(color: Color(0xFFEEF2F2), height: 1),
@@ -337,7 +362,8 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
           // ── Section: Technical info ──
           _sectionHeader(Icons.settings_outlined, 'ຂໍ້ມູນເຕັກນິກ',
               tourKey: _tourKeyTechnical,
-              tourDescription: 'ລາຍລະອຽດເຕັກນິກຂອງລົດ — ຕື່ມພາຍຫຼັງໄດ້ຖ້າຍັງບໍ່ຮູ້',
+              tourDescription:
+                  'ລາຍລະອຽດເຕັກນິກຂອງລົດ — ຕື່ມພາຍຫຼັງໄດ້ຖ້າຍັງບໍ່ຮູ້',
               tourIsLast: true),
           const SizedBox(height: 14),
           _row2(
@@ -425,7 +451,8 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
       title: title,
       description: tourDescription ?? '',
       targetPadding: const EdgeInsets.symmetric(vertical: 4),
-      tooltipActions: tourIsLast ? CoachMarkTour.lastStepActions(context) : null,
+      tooltipActions:
+          tourIsLast ? CoachMarkTour.lastStepActions(context) : null,
       child: header,
     );
   }
@@ -533,49 +560,131 @@ class _ScanOcrScreenState extends State<ScanOcrScreen> {
         ),
       ]);
 
-  Widget _plateTypeDropdown() =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('ປະເພດປ້າຍ',
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF334155))),
-        const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          initialValue: _plateType,
-          isExpanded: true,
-          hint: const Text('ເລືອກ',
-              style: TextStyle(fontSize: 14, color: Color(0xFFADB5BD))),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.primarySurface,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: Color(0xFFD0EEEC), width: 1.5)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: Color(0xFFD0EEEC), width: 1.5)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 2)),
+  Widget _plateTypeDropdown() {
+    final selected = _plateTypes.where((pt) => pt.plateCode == _plateType).toList();
+    final current = selected.isEmpty ? null : selected.first;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text('ປະເພດປ້າຍ',
+          style: TextStyle(
+              fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+      const SizedBox(height: 6),
+      GestureDetector(
+        onTap: _showPlateTypeModal,
+        child: Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppColors.primarySurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFD0EEEC), width: 1.5),
           ),
-          style: const TextStyle(fontSize: 15, color: Color(0xFF1A1A1A)),
-          items: _plateTypes
-              .map((pt) => DropdownMenuItem(
-                    value: pt.plateCode,
-                    child: Text(pt.name,
-                        style: const TextStyle(fontSize: 15),
-                        overflow: TextOverflow.ellipsis),
-                  ))
-              .toList(),
-          onChanged: (v) => setState(() => _plateType = v),
+          child: Row(children: [
+            Expanded(
+              child: Text(
+                current?.name ?? 'ເລືອກ',
+                style: TextStyle(
+                    fontSize: 14,
+                    color: current == null ? const Color(0xFFADB5BD) : const Color(0xFF1A1A1A)),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.expand_more, color: Color(0xFF94A3B8), size: 20),
+          ]),
         ),
-      ]);
+      ),
+    ]);
+  }
+
+  /// Renders the plate number the user actually typed (falling back to a
+  /// placeholder like the top preview does) on top of [pt]'s colors — so
+  /// picking a plate type shows exactly how *this* plate would look, not
+  /// just an abstract color swatch.
+  Widget _plateSwatch(PlateTypeModel pt, {required double width, required double height}) {
+    final plateText = _plateCtrl.text.isNotEmpty ? _plateCtrl.text : 'ທທ 0000';
+    return Container(
+      width: width,
+      height: height,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: pt.bgColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: pt.borderColor, width: 1.5),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (pt.showProvince)
+            Text(_province ?? 'ນະຄອນຫຼວງວຽງຈັນ',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: pt.fgColor, fontWeight: FontWeight.w700, fontSize: 7)),
+          Text(plateText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: pt.fgColor, fontWeight: FontWeight.w900, fontSize: height * 0.36)),
+        ],
+      ),
+    );
+  }
+
+  void _showPlateTypeModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(top: 10, bottom: 4),
+            decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(2)),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 10, 20, 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('ເລືອກປະເພດປ້າຍ',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
+            ),
+          ),
+          Flexible(
+            child: _plateTypes.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('ຍັງບໍ່ມີຂໍ້ມູນປະເພດປ້າຍ', style: TextStyle(color: Color(0xFF94A3B8))),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    itemCount: _plateTypes.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    itemBuilder: (_, i) {
+                      final pt = _plateTypes[i];
+                      final isSelected = pt.plateCode == _plateType;
+                      return ListTile(
+                        onTap: () {
+                          setState(() => _plateType = pt.plateCode);
+                          Navigator.of(ctx).pop();
+                        },
+                        leading: _plateSwatch(pt, width: 84, height: 46),
+                        title: Text(pt.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle, color: AppColors.primary)
+                            : null,
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
 
   Widget _simpleDropdown(String label, String? value, List<String> items,
           ValueChanged<String?> onChanged) =>

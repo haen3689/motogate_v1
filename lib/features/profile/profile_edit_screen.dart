@@ -13,16 +13,17 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  final _firstNameCtrl   = TextEditingController();
-  final _lastNameCtrl    = TextEditingController();
-  final _villageCtrl     = TextEditingController();
-  final _districtCtrl    = TextEditingController();
-  final _idNumberCtrl    = TextEditingController();
-  final _licenseNumCtrl  = TextEditingController();
-  final _picker          = ImagePicker();
+  final _firstNameCtrl = TextEditingController();
+  final _lastNameCtrl = TextEditingController();
+  final _villageCtrl = TextEditingController();
+  final _districtCtrl = TextEditingController();
+  final _idNumberCtrl = TextEditingController();
+  final _licenseNameCtrl = TextEditingController();
+  final _licenseNumCtrl = TextEditingController();
+  final _picker = ImagePicker();
 
-  bool _loading    = true;
-  bool _saving     = false;
+  bool _loading = true;
+  bool _saving = false;
   String? _phone;
   String? _gender;
   String? _province;
@@ -42,15 +43,38 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   File? _idCardImageFile;
   File? _licenseImageFile;
 
-  static const _genders  = ['ຊາຍ', 'ຍິງ', 'ອື່ນໆ'];
-  static const _idTypes  = ['national_id', 'passport'];
-  static const _licTypes = ['A', 'B', 'C', 'D', 'E', 'AB', 'ABC', 'ABCD', 'ABCDE'];
+  static const _genders = ['ຊາຍ', 'ຍິງ', 'ອື່ນໆ'];
+  static const _idTypes = ['national_id', 'passport'];
+  static const _licTypes = [
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'AB',
+    'ABC',
+    'ABCD',
+    'ABCDE'
+  ];
   static const _provinces = [
-    'ນະຄອນຫຼວງວຽງຈັນ', 'ວຽງຈັນ', 'ບໍລິຄຳໄຊ', 'ຄຳມ່ວນ',
-    'ສະຫວັນນະເຂດ', 'ສາລະວັນ', 'ເຊກອງ', 'ຈຳປາສັກ',
-    'ອັດຕາປື', 'ຫຼວງພະບາງ', 'ຫຼວງນໍ້າທາ', 'ອຸດົມໄຊ',
-    'ບໍ່ແກ້ວ', 'ຜົ້ງສາລີ', 'ໄຊຍະບູລີ', 'ຊຽງຂວາງ',
-    'ໄຊສົມບູນ', 'ຮົ່ວພັນ',
+    'ນະຄອນຫຼວງວຽງຈັນ',
+    'ວຽງຈັນ',
+    'ບໍລິຄຳໄຊ',
+    'ຄຳມ່ວນ',
+    'ສະຫວັນນະເຂດ',
+    'ສາລະວັນ',
+    'ເຊກອງ',
+    'ຈຳປາສັກ',
+    'ອັດຕາປື',
+    'ຫຼວງພະບາງ',
+    'ຫຼວງນໍ້າທາ',
+    'ອຸດົມໄຊ',
+    'ບໍ່ແກ້ວ',
+    'ຜົ້ງສາລີ',
+    'ໄຊຍະບູລີ',
+    'ຊຽງຂວາງ',
+    'ໄຊສົມບູນ',
+    'ຮົ່ວພັນ',
   ];
 
   @override
@@ -66,6 +90,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _villageCtrl.dispose();
     _districtCtrl.dispose();
     _idNumberCtrl.dispose();
+    _licenseNameCtrl.dispose();
     _licenseNumCtrl.dispose();
     super.dispose();
   }
@@ -75,19 +100,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       final data = await ApiAuthService.me();
       final u = data['user'] as Map<String, dynamic>? ?? data;
       setState(() {
-        _phone           = u['phone_number']?.toString();
+        _phone = u['phone_number']?.toString();
         _firstNameCtrl.text = u['first_name']?.toString() ?? '';
-        _lastNameCtrl.text  = u['last_name']?.toString() ?? '';
-        _gender          = _genders.contains(u['gender']) ? u['gender'] as String? : null;
-        _province        = _provinces.contains(u['province']) ? u['province'] as String? : null;
-        _districtCtrl.text  = u['district']?.toString() ?? '';
-        _villageCtrl.text   = u['village']?.toString() ?? '';
-        _idType          = u['id_type']?.toString();
-        _idNumberCtrl.text  = u['id_number']?.toString() ?? '';
-        _licenseType     = u['license_type']?.toString();
+        _lastNameCtrl.text = u['last_name']?.toString() ?? '';
+        _gender =
+            _genders.contains(u['gender']) ? u['gender'] as String? : null;
+        _province = _provinces.contains(u['province'])
+            ? u['province'] as String?
+            : null;
+        _districtCtrl.text = u['district']?.toString() ?? '';
+        _villageCtrl.text = u['village']?.toString() ?? '';
+        _idType = u['id_type']?.toString();
+        _idNumberCtrl.text = u['id_number']?.toString() ?? '';
+        _licenseType = u['license_type']?.toString();
+        _licenseNameCtrl.text = u['license_name']?.toString() ?? '';
         _licenseNumCtrl.text = u['license_number']?.toString() ?? '';
         _profileImageUrl = u['profile_image_url']?.toString();
-        _idCardImageUrl  = u['id_card_image_url']?.toString();
+        _idCardImageUrl = u['id_card_image_url']?.toString();
         _licenseImageUrl = u['license_image_url']?.toString();
 
         final dobStr = u['date_of_birth']?.toString();
@@ -105,7 +134,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ໂຫລດຂໍ້ມູນຜິດພາດ: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('ໂຫລດຂໍ້ມູນຜິດພາດ: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -118,7 +149,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() {
       if (field == 'profile') {
         _profileImageFile = file;
-      } else if (field == 'id_card') _idCardImageFile = file;
+      } else if (field == 'id_card')
+        _idCardImageFile = file;
       else if (field == 'license') _licenseImageFile = file;
     });
   }
@@ -131,7 +163,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             ? (_idExpiry ?? now.add(const Duration(days: 365 * 5)))
             : (_licenseExpiry ?? now.add(const Duration(days: 365 * 5)));
     final first = field == 'dob' ? DateTime(1950) : now;
-    final last  = field == 'dob' ? now : DateTime(now.year + 20);
+    final last = field == 'dob' ? now : DateTime(now.year + 20);
 
     final picked = await showDatePicker(
       context: context,
@@ -149,8 +181,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() {
       if (field == 'dob') {
         _dob = picked;
-      } else if (field == 'id_expiry') _idExpiry = picked;
-      else _licenseExpiry = picked;
+      } else if (field == 'id_expiry')
+        _idExpiry = picked;
+      else
+        _licenseExpiry = picked;
     });
   }
 
@@ -159,44 +193,67 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     setState(() => _saving = true);
     try {
       final updated = await ApiAuthService.updateProfile(
-        firstName:          _firstNameCtrl.text.trim().isNotEmpty ? _firstNameCtrl.text.trim() : null,
-        lastName:           _lastNameCtrl.text.trim().isNotEmpty  ? _lastNameCtrl.text.trim()  : null,
-        gender:             _gender,
-        dateOfBirth:        _dob != null ? _fmt(_dob!) : null,
-        province:           _province,
-        district:           _districtCtrl.text.trim().isNotEmpty  ? _districtCtrl.text.trim()  : null,
-        village:            _villageCtrl.text.trim().isNotEmpty   ? _villageCtrl.text.trim()   : null,
-        idType:             _idType,
-        idNumber:           _idNumberCtrl.text.trim().isNotEmpty  ? _idNumberCtrl.text.trim()  : null,
-        idExpiryDate:       _idExpiry != null ? _fmt(_idExpiry!) : null,
-        licenseNumber:      _licenseNumCtrl.text.trim().isNotEmpty ? _licenseNumCtrl.text.trim() : null,
-        licenseType:        _licenseType,
-        licenseExpiryDate:  _licenseExpiry != null ? _fmt(_licenseExpiry!) : null,
-        profileImage:       _profileImageFile,
-        idCardImage:        _idCardImageFile,
-        licenseImage:       _licenseImageFile,
+        firstName: _firstNameCtrl.text.trim().isNotEmpty
+            ? _firstNameCtrl.text.trim()
+            : null,
+        lastName: _lastNameCtrl.text.trim().isNotEmpty
+            ? _lastNameCtrl.text.trim()
+            : null,
+        gender: _gender,
+        dateOfBirth: _dob != null ? _fmt(_dob!) : null,
+        province: _province,
+        district: _districtCtrl.text.trim().isNotEmpty
+            ? _districtCtrl.text.trim()
+            : null,
+        village: _villageCtrl.text.trim().isNotEmpty
+            ? _villageCtrl.text.trim()
+            : null,
+        idType: _idType,
+        idNumber: _idNumberCtrl.text.trim().isNotEmpty
+            ? _idNumberCtrl.text.trim()
+            : null,
+        idExpiryDate: _idExpiry != null ? _fmt(_idExpiry!) : null,
+        licenseName: _licenseNameCtrl.text.trim().isNotEmpty
+            ? _licenseNameCtrl.text.trim()
+            : null,
+        licenseNumber: _licenseNumCtrl.text.trim().isNotEmpty
+            ? _licenseNumCtrl.text.trim()
+            : null,
+        licenseType: _licenseType,
+        licenseExpiryDate:
+            _licenseExpiry != null ? _fmt(_licenseExpiry!) : null,
+        profileImage: _profileImageFile,
+        idCardImage: _idCardImageFile,
+        licenseImage: _licenseImageFile,
       );
 
       if (mounted) {
         // อัพเดต URL จาก server response ทันที + ล้าง File objects
         setState(() {
-          _profileImageUrl = updated['profile_image_url']?.toString() ?? _profileImageUrl;
-          _idCardImageUrl  = updated['id_card_image_url']?.toString()  ?? _idCardImageUrl;
-          _licenseImageUrl = updated['license_image_url']?.toString()  ?? _licenseImageUrl;
+          _profileImageUrl =
+              updated['profile_image_url']?.toString() ?? _profileImageUrl;
+          _idCardImageUrl =
+              updated['id_card_image_url']?.toString() ?? _idCardImageUrl;
+          _licenseImageUrl =
+              updated['license_image_url']?.toString() ?? _licenseImageUrl;
           _profileImageFile = null;
-          _idCardImageFile  = null;
+          _idCardImageFile = null;
           _licenseImageFile = null;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ບັນທຶກສຳເລັດ ✓'), backgroundColor: AppColors.primary),
+          const SnackBar(
+              content: Text('ບັນທຶກສຳເລັດ ✓'),
+              backgroundColor: AppColors.primary),
         );
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -214,7 +271,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     if (_loading) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        body:
+            Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
     return Scaffold(
@@ -270,12 +328,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   _dropdown('ປະເພດ', _idTypes, _idType,
                       labels: const ['ບັດປະຈຳຕົວ', 'Passport'],
                       onChanged: (v) => setState(() => _idType = v)),
-                  _dateTap('ວັນໝົດອາຍຸ', _idExpiry, () => _pickDate('id_expiry')),
+                  _dateTap(
+                      'ວັນໝົດອາຍຸ', _idExpiry, () => _pickDate('id_expiry')),
                 ),
                 const SizedBox(height: 12),
                 _field('ເລກບັດ', _idNumberCtrl, 'xxxxxxxxxxxxxxxxx'),
                 const SizedBox(height: 12),
-                _imgPicker('ຮູບບັດ', _idCardImageFile, _idCardImageUrl, 'id_card'),
+                _imgPicker(
+                    'ຮູບບັດ', _idCardImageFile, _idCardImageUrl, 'id_card'),
               ]),
             ),
             const SizedBox(height: 16),
@@ -286,17 +346,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 _row2(
                   _dropdown('ປະເພດ', _licTypes, _licenseType,
                       onChanged: (v) => setState(() => _licenseType = v)),
-                  _dateTap('ວັນໝົດອາຍຸ', _licenseExpiry, () => _pickDate('license_expiry')),
+                  _dateTap('ວັນໝົດອາຍຸ', _licenseExpiry,
+                      () => _pickDate('license_expiry')),
                 ),
+                const SizedBox(height: 12),
+                _field('ຊື່ໃບຂັບຂີ່', _licenseNameCtrl,
+                    'ຊື່ຕາມທີ່ພິມຢູ່ໃນໃບຂັບຂີ່'),
                 const SizedBox(height: 12),
                 _field('ເລກໃບຂັບຂີ່', _licenseNumCtrl, 'xxxxxxxxx'),
                 const SizedBox(height: 12),
-                _imgPicker('ຮູບໃບຂັບຂີ່', _licenseImageFile, _licenseImageUrl, 'license'),
+                _imgPicker('ຮູບໃບຂັບຂີ່', _licenseImageFile, _licenseImageUrl,
+                    'license'),
               ]),
             ),
             const SizedBox(height: 24),
             _saving
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary))
                 : MgButton(
                     label: 'ບັນທຶກການປ່ຽນແປງ',
                     variant: MgButtonVariant.primary,
@@ -312,11 +378,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Widget _avatarSection() {
     Widget avatar;
     if (_profileImageFile != null) {
-      avatar = Image.file(_profileImageFile!, fit: BoxFit.cover,
-          width: double.infinity, height: double.infinity);
+      avatar = Image.file(_profileImageFile!,
+          fit: BoxFit.cover, width: double.infinity, height: double.infinity);
     } else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty) {
-      avatar = Image.network(_profileImageUrl!, fit: BoxFit.cover,
-          width: double.infinity, height: double.infinity);
+      avatar = Image.network(_profileImageUrl!,
+          fit: BoxFit.cover, width: double.infinity, height: double.infinity);
     } else {
       avatar = const Icon(Icons.person, color: AppColors.white, size: 44);
     }
@@ -328,23 +394,28 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           child: Stack(
             children: [
               Container(
-                width: 96, height: 96,
+                width: 96,
+                height: 96,
                 decoration: const BoxDecoration(
-                  color: AppColors.primary, shape: BoxShape.circle,
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: avatar,
               ),
               Positioned(
-                bottom: 0, right: 0,
+                bottom: 0,
+                right: 0,
                 child: Container(
-                  width: 28, height: 28,
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.white, width: 2),
                   ),
-                  child: const Icon(Icons.camera_alt, color: AppColors.white, size: 14),
+                  child: const Icon(Icons.camera_alt,
+                      color: AppColors.white, size: 14),
                 ),
               ),
             ],
@@ -382,16 +453,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       ? Image.file(file, fit: BoxFit.cover)
                       : Image.network(url!, fit: BoxFit.cover),
                   Positioned(
-                    bottom: 6, right: 6,
+                    bottom: 6,
+                    right: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.85),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text('ປ່ຽນຮູບ',
-                          style: TextStyle(color: AppColors.white,
-                              fontSize: 10, fontWeight: FontWeight.w700)),
+                          style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700)),
                     ),
                   ),
                 ])
@@ -400,8 +475,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       color: AppColors.primary, size: 28),
                   const SizedBox(height: 6),
                   Text('ກົດເພື່ອອັບໂຫຼດ',
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                      style: AppTextStyles.caption.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600)),
                 ]),
         ),
       ),
@@ -416,19 +492,30 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       builder: (_) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: 8),
-          Container(width: 36, height: 4,
-              decoration: BoxDecoration(color: AppColors.grey300,
+          Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: AppColors.grey300,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           ListTile(
-            leading: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
+            leading: const Icon(Icons.photo_camera_outlined,
+                color: AppColors.primary),
             title: const Text('ຖ່າຍຮູບ'),
-            onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera, field); },
+            onTap: () {
+              Navigator.pop(context);
+              _pickImage(ImageSource.camera, field);
+            },
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+            leading: const Icon(Icons.photo_library_outlined,
+                color: AppColors.primary),
             title: const Text('ເລືອກຈາກ Gallery'),
-            onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery, field); },
+            onTap: () {
+              Navigator.pop(context);
+              _pickImage(ImageSource.gallery, field);
+            },
           ),
           const SizedBox(height: 8),
         ]),
@@ -437,7 +524,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   // ── Helpers ──
-  Widget _sectionCard({required IconData icon, required String title, required Widget child}) {
+  Widget _sectionCard(
+      {required IconData icon, required String title, required Widget child}) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -450,7 +538,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [AppColors.primary, Color(0xFF1e9e82)],
-              begin: Alignment.centerLeft, end: Alignment.centerRight,
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
             borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
           ),
@@ -458,8 +547,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             Icon(icon, color: AppColors.white, size: 16),
             const SizedBox(width: 8),
             Text(title,
-                style: const TextStyle(color: AppColors.white,
-                    fontWeight: FontWeight.w700, fontSize: 14)),
+                style: const TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14)),
           ]),
         ),
         Padding(padding: const EdgeInsets.all(16), child: child),
@@ -468,12 +559,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   Widget _row2(Widget a, Widget b) => Row(children: [
-    Expanded(child: a), const SizedBox(width: 10), Expanded(child: b),
-  ]);
+        Expanded(child: a),
+        const SizedBox(width: 10),
+        Expanded(child: b),
+      ]);
 
   Widget _lbl(String t) => Text(t,
-      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-          color: Color(0xFF94A3B8), letterSpacing: .04));
+      style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF94A3B8),
+          letterSpacing: .04));
 
   Widget _field(String label, TextEditingController? ctrl, String hint,
       {bool readonly = false}) {
@@ -487,16 +583,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         style: AppTextStyles.bodyMedium,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey350),
+          hintStyle:
+              AppTextStyles.bodyMedium.copyWith(color: AppColors.grey350),
           filled: true,
-          fillColor: readonly ? const Color(0xFFF1F5F9) : AppColors.primarySurface,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          fillColor:
+              readonly ? const Color(0xFFF1F5F9) : AppColors.primarySurface,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: AppColors.primaryLight)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: AppColors.primaryLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5)),
         ),
       ),
     ]);
@@ -509,25 +612,34 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       _lbl(label),
       const SizedBox(height: 5),
       DropdownButtonFormField<String>(
-        initialValue: (current != null && values.contains(current)) ? current : null,
+        initialValue:
+            (current != null && values.contains(current)) ? current : null,
         isExpanded: true,
         isDense: true,
-        hint: Text('ເລືອກ', style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey350)),
+        hint: Text('ເລືອກ',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey350)),
         decoration: InputDecoration(
           filled: true,
           fillColor: AppColors.primarySurface,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: AppColors.primaryLight)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: AppColors.primaryLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5)),
         ),
-        items: List.generate(values.length, (i) => DropdownMenuItem(
-          value: values[i],
-          child: Text(displayLabels[i], style: AppTextStyles.bodySmall),
-        )),
+        items: List.generate(
+            values.length,
+            (i) => DropdownMenuItem(
+                  value: values[i],
+                  child: Text(displayLabels[i], style: AppTextStyles.bodySmall),
+                )),
         onChanged: onChanged,
       ),
     ]);

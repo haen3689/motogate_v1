@@ -13,9 +13,11 @@ class LicenseSetupScreen extends StatefulWidget {
 }
 
 class _LicenseSetupScreenState extends State<LicenseSetupScreen> {
+  final _licenseNameCtrl = TextEditingController();
   final _licenseCtrl = TextEditingController();
   final _picker = ImagePicker();
   bool _loading = false;
+  bool _initializing = true;
   String? _licenseType;
   DateTime? _expiryDate;
   File? _licenseImage;
@@ -23,14 +25,46 @@ class _LicenseSetupScreenState extends State<LicenseSetupScreen> {
   static const _licenseTypes = ['A', 'B', 'C', 'D', 'E', 'AB', 'ABC', 'ABCD', 'ABCDE'];
 
   bool get _canSave =>
+      _licenseNameCtrl.text.trim().isNotEmpty &&
       _licenseCtrl.text.trim().isNotEmpty &&
       _licenseType != null &&
       _expiryDate != null;
 
   @override
+  void initState() {
+    super.initState();
+    _loadExisting();
+  }
+
+  @override
   void dispose() {
+    _licenseNameCtrl.dispose();
     _licenseCtrl.dispose();
     super.dispose();
+  }
+
+  // ຜູ້ໃຊ້ທີ່ມີຂໍ້ມູນໃບຂັບຂີ່ຢູ່ແລ້ວແຕ່ຂາດຮູບ (ເຂົ້າມາຈາກ card ໃນ ເອກະສານ) ຕ້ອງເຫັນ
+  // ຂໍ້ມູນເກົ່າຂອງຕົນເອງ ບໍ່ແມ່ນຟອມຫວ່າງ — ບໍ່ດັ່ງນັ້ນຈະຕ້ອງພິມທຸກຊ່ອງໃໝ່ພຽງແຄ່ຈະ
+  // ແນບຮູບ. ຄ້າງ _initializing ໄວ້ຈົນກວ່າຈະໂຫລດແລ້ວ, ເພາະ DropdownButtonFormField
+  // ໃຊ້ initialValue ໄດ້ແຕ່ຕອນ build ຄັ້ງທຳອິດເທົ່ານັ້ນ.
+  Future<void> _loadExisting() async {
+    try {
+      final u = await ApiAuthService.me();
+      final type = u['license_type']?.toString();
+      final expiry = DateTime.tryParse(u['license_expiry_date']?.toString() ?? '');
+      if (mounted) {
+        setState(() {
+          _licenseNameCtrl.text = u['license_name']?.toString() ?? '';
+          _licenseCtrl.text = u['license_number']?.toString() ?? '';
+          _licenseType = _licenseTypes.contains(type) ? type : null;
+          _expiryDate = expiry;
+        });
+      }
+    } catch (_) {
+      // ໂຫລດບໍ່ໄດ້ — ປ່ອຍເປັນຟອມຫວ່າງ, ຜູ້ໃຊ້ຍັງກົດ "ຂ້າມ" ໄດ້ຢູ່
+    } finally {
+      if (mounted) setState(() => _initializing = false);
+    }
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -60,6 +94,7 @@ class _LicenseSetupScreenState extends State<LicenseSetupScreen> {
     setState(() => _loading = true);
     try {
       await ApiAuthService.updateProfile(
+        licenseName: _licenseNameCtrl.text.trim(),
         licenseNumber: _licenseCtrl.text.trim(),
         licenseType: _licenseType,
         licenseExpiryDate: _fmtDate(_expiryDate!),
@@ -87,6 +122,12 @@ class _LicenseSetupScreenState extends State<LicenseSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_initializing) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const MgHeader(title: 'ເພີ່ມຂໍ້ມູນໃບຂັບຂີ'),
@@ -139,6 +180,10 @@ class _LicenseSetupScreenState extends State<LicenseSetupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _fieldLabel('ຊື່ໃບຂັບຂີ'),
+                  const SizedBox(height: 8),
+                  _input(_licenseNameCtrl, 'ຊື່ຕາມທີ່ພິມຢູ່ໃນໃບຂັບຂີ'),
+                  const SizedBox(height: 16),
                   _fieldLabel('ເລກໃບຂັບຂີ'),
                   const SizedBox(height: 8),
                   _input(_licenseCtrl, 'ປ້ອນເລກໃບຂັບຂີ'),
