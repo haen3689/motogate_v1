@@ -11,15 +11,20 @@ class InspectionSuccessScreen extends StatelessWidget {
   final Map<String, dynamic> vehicle;
   final Map<String, dynamic> center;
   final Map<String, dynamic> service;
+  final Map<String, dynamic>? payment;
   const InspectionSuccessScreen({
     super.key,
     required this.inspection,
     required this.vehicle,
     required this.center,
     required this.service,
+    this.payment,
   });
 
   String get _bookingNumber {
+    final ref = payment?['reference']?.toString();
+    if (ref != null && ref.isNotEmpty) return ref;
+
     final id = int.tryParse(inspection['id']?.toString() ?? '') ?? 0;
     final year = DateTime.now().year % 100;
     return 'IN$year-${id.toString().padLeft(7, '0')}';
@@ -81,7 +86,7 @@ class InspectionSuccessScreen extends StatelessWidget {
               ),
               child: Column(children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text('ເລກທີ່ການຈອງ',
+                  Text('ເລກທີ່ອ້າງອີງ',
                       style: AppTextStyles.caption.copyWith(color: AppColors.grey500, fontSize: 12)),
                   Text(_bookingNumber,
                       style: const TextStyle(

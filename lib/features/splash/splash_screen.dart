@@ -114,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
                     opacity: _textFade,
                     child: SlideTransition(
                       position: _textSlide,
-                      child: const Text('MotoGate',
+                      child: const Text('AutoPass',
                           style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w700,

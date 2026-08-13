@@ -99,6 +99,7 @@ class _InspectionQrPaymentScreenState extends State<InspectionQrPaymentScreen> w
           'vehicle': widget.vehicle,
           'center': widget.center,
           'service': widget.service,
+          'payment': result,
         });
       }
     } catch (_) {

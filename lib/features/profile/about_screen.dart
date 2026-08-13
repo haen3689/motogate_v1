@@ -28,7 +28,7 @@ class _AboutScreenState extends State<AboutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MgHeader(title: 'ແນະນຳກ່ຽວກັບ MotoGate'),
+      appBar: const MgHeader(title: 'ແນະນຳກ່ຽວກັບ AutoPass'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(22),
         child: Column(
@@ -43,7 +43,7 @@ class _AboutScreenState extends State<AboutScreen> {
                   child: const Icon(Icons.two_wheeler, color: Colors.white, size: 44),
                 ),
                 const SizedBox(height: 14),
-                const Text('MotoGate Lao', style: AppTextStyles.h3),
+                const Text('AutoPass Lao', style: AppTextStyles.h3),
                 const SizedBox(height: 4),
                 if (_version.isNotEmpty)
                   Text(_version, style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500)),
@@ -51,8 +51,8 @@ class _AboutScreenState extends State<AboutScreen> {
             ),
             const SizedBox(height: 26),
             _card(
-              'MotoGate ແມ່ນຫຍັງ',
-              'MotoGate Lao ແມ່ນແອັບພລິເຄຊັນທີ່ຊ່ວຍໃຫ້ເຈົ້າຂອງລົດຈັກ ແລະ ລົດໃຫຍ່ຢູ່ ສປປ ລາວ ຈັດການ '
+              'AutoPass ແມ່ນຫຍັງ',
+              'AutoPass Lao ແມ່ນແອັບພລິເຄຊັນທີ່ຊ່ວຍໃຫ້ເຈົ້າຂອງລົດຈັກ ແລະ ລົດໃຫຍ່ຢູ່ ສປປ ລາວ ຈັດການ '
                   'ເອກະສານ ແລະ ບໍລິການທີ່ກ່ຽວຂ້ອງກັບພາຫະນະຂອງທ່ານໄດ້ງ່າຍຂຶ້ນ ຜ່ານມືຖືເຄື່ອງດຽວ.',
             ),
             const SizedBox(height: 14),

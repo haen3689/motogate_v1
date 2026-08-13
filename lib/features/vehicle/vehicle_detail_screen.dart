@@ -46,7 +46,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'ຜູ້ໃຊ້ຕ້ອງລົງທະບຽນແອັບ MotoGate ໄວ້ກ່ອນແລ້ວ ຈິ່ງຈະເພີ່ມໄດ້',
+              'ຜູ້ໃຊ້ຕ້ອງລົງທະບຽນແອັບ AutoPass ໄວ້ກ່ອນແລ້ວ ຈິ່ງຈະເພີ່ມໄດ້',
               style: TextStyle(fontSize: 12, color: AppColors.grey400),
             ),
             const SizedBox(height: 12),

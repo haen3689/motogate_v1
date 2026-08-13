@@ -27,7 +27,7 @@ class WelcomeScreen extends StatelessWidget {
                 child: Image.asset('assets/images/motogate_logo.png', fit: BoxFit.cover),
               ),
               const SizedBox(height: 24),
-              const Text('MotoGate',
+              const Text('AutoPass',
                   style: TextStyle(
                       fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.primary)),
               const SizedBox(height: 8),

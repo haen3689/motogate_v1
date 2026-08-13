@@ -13,12 +13,14 @@ class InsuranceSuccessScreen extends StatelessWidget {
   final Map<String, dynamic> vehicle;
   final Map<String, dynamic> company;
   final Map<String, dynamic> package;
+  final Map<String, dynamic>? payment;
   const InsuranceSuccessScreen({
     super.key,
     required this.insurance,
     required this.vehicle,
     required this.company,
     required this.package,
+    this.payment,
   });
 
   String get _certNumber => insurance['certificate_number']?.toString() ?? '—';
@@ -85,6 +87,10 @@ class InsuranceSuccessScreen extends StatelessWidget {
                 _row('ວັນທີ່ເລີ່ມ', _fmtDate(insurance['start_date']?.toString())),
                 const SizedBox(height: 10),
                 _row('ວັນທີ່ໝົດອາຍຸ', _fmtDate(insurance['end_date']?.toString())),
+                if (payment?['reference'] != null) ...[
+                  const SizedBox(height: 10),
+                  _row('ເລກທີ່ອ້າງອີງການຊຳລະ', payment!['reference'].toString()),
+                ],
                 const SizedBox(height: 14),
                 const Divider(color: AppColors.primaryLight, height: 1),
                 const SizedBox(height: 14),

@@ -107,6 +107,7 @@ class _InsuranceQrPaymentScreenState extends State<InsuranceQrPaymentScreen> wit
           'vehicle': widget.vehicle,
           'company': widget.company,
           'package': widget.package,
+          'payment': result,
         });
       }
     } catch (_) {

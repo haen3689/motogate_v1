@@ -136,6 +136,7 @@ class AppRouter {
               vehicle: args['vehicle'] as Map<String, dynamic>,
               company: args['company'] as Map<String, dynamic>,
               package: args['package'] as Map<String, dynamic>,
+              payment: args['payment'] as Map<String, dynamic>?,
             ),
             s);
       case '/roadtax':
@@ -195,6 +196,7 @@ class AppRouter {
             RoadtaxSuccessScreen(
               roadTax: args['roadTax'] as Map<String, dynamic>,
               vehicle: args['vehicle'] as Map<String, dynamic>,
+              payment: args['payment'] as Map<String, dynamic>?,
             ),
             s);
       case '/inspection':
@@ -240,6 +242,7 @@ class AppRouter {
               vehicle: args['vehicle'] as Map<String, dynamic>,
               center: args['center'] as Map<String, dynamic>,
               service: args['service'] as Map<String, dynamic>,
+              payment: args['payment'] as Map<String, dynamic>?,
             ),
             s);
       case '/services/repair':

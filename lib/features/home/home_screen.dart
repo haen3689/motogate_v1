@@ -272,7 +272,7 @@ class HomeScreenState extends State<HomeScreen> {
     final fn = _user?['first_name'] ?? '';
     final ln = _user?['last_name'] ?? '';
     if (fn.isNotEmpty || ln.isNotEmpty) return '$fn $ln'.trim();
-    return _user?['name'] ?? 'MotoGate User';
+    return _user?['name'] ?? 'AutoPass User';
   }
 
   String get _phone => _user?['phone_number'] ?? '';

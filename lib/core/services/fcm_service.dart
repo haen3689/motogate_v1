@@ -7,8 +7,8 @@ class FcmService {
 
   static const _channel = AndroidNotificationChannel(
     'motogate_channel',
-    'MotoGate',
-    description: 'ແຈ້ງເຕືອນຈາກ MotoGate',
+    'AutoPass',
+    description: 'ແຈ້ງເຕືອນຈາກ AutoPass',
     importance: Importance.high,
   );
 

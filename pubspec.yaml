@@ -1,5 +1,5 @@
 name: motogate_app
-description: "MotoGate - Vehicle Registration & Services"
+description: "AutoPass - Vehicle Registration & Services"
 publish_to: 'none'
 version: 1.0.0+1
 environment:
@@ -46,6 +46,7 @@ flutter_launcher_icons:
   image_path: "assets/images/motogate_logo.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/motogate_logo.png"
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true

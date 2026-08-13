@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
               const Center(
-                  child: Text('MotoGate',
+                  child: Text('AutoPass',
                       style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w700,

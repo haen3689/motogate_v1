@@ -88,6 +88,7 @@ class _RoadtaxQrPaymentScreenState extends State<RoadtaxQrPaymentScreen> with Wi
         Navigator.of(context).pushNamedAndRemoveUntil('/roadtax/success', (r) => false, arguments: {
           'roadTax': {..._roadTax, 'status': 'paid', 'paid_at': result['paid_at']},
           'vehicle': widget.vehicle,
+          'payment': result,
         });
       }
     } catch (_) {

@@ -15,15 +15,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundHandler);
-  runApp(const MotoGateApp());
+  runApp(const AutoPassApp());
 }
 
-class MotoGateApp extends StatelessWidget {
-  const MotoGateApp({super.key});
+class AutoPassApp extends StatelessWidget {
+  const AutoPassApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MotoGate',
+      title: 'AutoPass',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: '/',

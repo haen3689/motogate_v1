@@ -66,7 +66,7 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
               ]),
               const SizedBox(height: 16),
               _card([
-                _tile(Icons.info_outline, 'ແນະນຳກ່ຽວກັບ MotoGate Lao',
+                _tile(Icons.info_outline, 'ແນະນຳກ່ຽວກັບ AutoPass Lao',
                     () => Navigator.of(context).pushNamed('/about')),
                 _tile(
                   Icons.logout,
@@ -146,7 +146,7 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
           else
             Text(
-              _name?.isNotEmpty == true ? _name! : 'MotoGate User',
+              _name?.isNotEmpty == true ? _name! : 'AutoPass User',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.white),
             ),
           const SizedBox(height: 4),

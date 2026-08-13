@@ -89,7 +89,8 @@ class _VehicleFeeQrPaymentScreenState extends State<VehicleFeeQrPaymentScreen> w
           MaterialPageRoute(
             builder: (_) => PaymentSuccessScreen(
               title: 'ຄ່າທຳນຽມລົງທະບຽນລົດ',
-              amount: '${_money.format(amount)} LAK',
+              amount: '${_money.format(amount)} ກີບ',
+              reference: result['reference']?.toString(),
             ),
           ),
         );
