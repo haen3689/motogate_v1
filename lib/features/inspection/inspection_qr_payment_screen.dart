@@ -84,27 +84,35 @@ class _InspectionQrPaymentScreenState extends State<InspectionQrPaymentScreen> w
   Future<void> _checkStatus() async {
     final uuid = _payment['uuid']?.toString();
     if (uuid == null || _paid) return;
+
+    Map<String, dynamic> result;
     try {
-      final result = await ApiPaymentService.show(uuid);
-      if (!mounted) return;
-      setState(() => _payment = result);
-      if (result['status'] == 'paid') {
-        _paid = true;
-        _pollTimer?.cancel();
-        _tickTimer?.cancel();
-        await Future.delayed(const Duration(milliseconds: 400));
-        if (!mounted) return;
-        Navigator.of(context).pushNamedAndRemoveUntil('/inspection/success', (r) => false, arguments: {
-          'inspection': {..._inspection, 'status': 'confirmed'},
-          'vehicle': widget.vehicle,
-          'center': widget.center,
-          'service': widget.service,
-          'payment': result,
-        });
-      }
+      result = await ApiPaymentService.show(uuid);
     } catch (_) {
       // Transient network error — next poll tick will retry.
+      return;
     }
+    if (!mounted) return;
+    setState(() => _payment = result);
+    if (result['status'] != 'paid') return;
+
+    // From here on we're committed: timers are stopped and _paid is set,
+    // so this must NOT be inside the try/catch above — swallowing an
+    // error here would leave the user stuck on the QR screen forever
+    // with no further poll to retry, even though payment already
+    // succeeded server-side.
+    _paid = true;
+    _pollTimer?.cancel();
+    _tickTimer?.cancel();
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/inspection/success', (r) => false, arguments: {
+      'inspection': {..._inspection, 'status': 'confirmed'},
+      'vehicle': widget.vehicle,
+      'center': widget.center,
+      'service': widget.service,
+      'payment': result,
+    });
   }
 
   Future<void> _openBcelOne() async {

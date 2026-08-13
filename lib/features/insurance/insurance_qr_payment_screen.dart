@@ -82,37 +82,45 @@ class _InsuranceQrPaymentScreenState extends State<InsuranceQrPaymentScreen> wit
   Future<void> _checkStatus() async {
     final uuid = _payment['uuid']?.toString();
     if (uuid == null || _paid) return;
+
+    Map<String, dynamic> result;
     try {
-      final result = await ApiPaymentService.show(uuid);
-      if (!mounted) return;
-      setState(() => _payment = result);
-      if (result['status'] == 'paid') {
-        _paid = true;
-        _pollTimer?.cancel();
-        _tickTimer?.cancel();
-        await Future.delayed(const Duration(milliseconds: 400));
-        if (!mounted) return;
-        // Re-fetch: certificate_number/start_date/end_date are only
-        // computed server-side once payment clears, so the pending
-        // snapshot we created with doesn't have them yet.
-        Map<String, dynamic> freshInsurance;
-        try {
-          freshInsurance = await ApiInsuranceService.show(_insurance['id']);
-        } catch (_) {
-          freshInsurance = {..._insurance, 'status': 'active'};
-        }
-        if (!mounted) return;
-        Navigator.of(context).pushNamedAndRemoveUntil('/insurance/success', (r) => false, arguments: {
-          'insurance': freshInsurance,
-          'vehicle': widget.vehicle,
-          'company': widget.company,
-          'package': widget.package,
-          'payment': result,
-        });
-      }
+      result = await ApiPaymentService.show(uuid);
     } catch (_) {
       // Transient network error — next poll tick will retry.
+      return;
     }
+    if (!mounted) return;
+    setState(() => _payment = result);
+    if (result['status'] != 'paid') return;
+
+    // From here on we're committed: timers are stopped and _paid is set,
+    // so this must NOT be inside the try/catch above — swallowing an
+    // error here would leave the user stuck on the QR screen forever
+    // with no further poll to retry, even though payment already
+    // succeeded server-side.
+    _paid = true;
+    _pollTimer?.cancel();
+    _tickTimer?.cancel();
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    // Re-fetch: certificate_number/start_date/end_date are only
+    // computed server-side once payment clears, so the pending
+    // snapshot we created with doesn't have them yet.
+    Map<String, dynamic> freshInsurance;
+    try {
+      freshInsurance = await ApiInsuranceService.show(_insurance['id']);
+    } catch (_) {
+      freshInsurance = {..._insurance, 'status': 'active'};
+    }
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/insurance/success', (r) => false, arguments: {
+      'insurance': freshInsurance,
+      'vehicle': widget.vehicle,
+      'company': widget.company,
+      'package': widget.package,
+      'payment': result,
+    });
   }
 
   Future<void> _openBcelOne() async {
