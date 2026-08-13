@@ -111,8 +111,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         child: child!,
       ),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(() => isDob ? _dob = picked : _idExpiry = picked);
+    }
   }
 
   Future<void> _next() async {

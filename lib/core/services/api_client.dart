@@ -67,7 +67,12 @@ class ApiClient {
                 err.type == DioExceptionType.connectionTimeout ||
                 err.error.toString().contains('connection reset by peer');
 
-        if (isConnectionError && err.requestOptions.extra['isRetry'] != true) {
+        final isRetryableMethod =
+            err.requestOptions.method.toUpperCase() == 'GET';
+
+        if (isConnectionError &&
+            isRetryableMethod &&
+            err.requestOptions.extra['isRetry'] != true) {
           try {
             final options = err.requestOptions;
             options.extra['isRetry'] = true;

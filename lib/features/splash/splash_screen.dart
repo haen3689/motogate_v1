@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
@@ -62,7 +63,23 @@ class _SplashScreenState extends State<SplashScreen>
         await ApiAuthService.me();
         if (mounted) Navigator.of(context).pushReplacementNamed('/home');
         return;
+      } on DioException catch (e) {
+        // Only a real "your token is invalid/expired" response should log
+        // the user out. Network hiccups, timeouts, or a flaky server (5xx)
+        // must NOT wipe a perfectly valid saved token — otherwise a user
+        // who just logged in gets bounced back to onboarding the moment
+        // they reopen the app on a bad connection.
+        if (e.response?.statusCode == 401) {
+          await ApiClient.clearToken();
+        } else if (mounted) {
+          // Trust the cached session and let them in; HomeScreen will
+          // retry the user fetch itself.
+          Navigator.of(context).pushReplacementNamed('/home');
+          return;
+        }
       } catch (_) {
+        // Unexpected non-network error decoding the response etc. — treat
+        // as a real auth failure rather than risk looping forever.
         await ApiClient.clearToken();
       }
     }
