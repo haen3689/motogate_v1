@@ -9,6 +9,9 @@ class TransactionModel {
     this.reference,
     this.description,
     required this.createdAt,
+    this.referenceNo,
+    this.invoiceNo,
+    this.merchantRefNo,
   });
 
   final int id;
@@ -19,6 +22,13 @@ class TransactionModel {
   final String? description;
   final DateTime createdAt;
 
+  // Only present when this transaction is linked to a BCEL payment —
+  // external_upload road tax entries (manually uploaded proof, no BCEL
+  // payment) leave these null.
+  final String? referenceNo; // ເລກອ້າງອິງ
+  final String? invoiceNo; // ເລກໃບບິນ
+  final String? merchantRefNo; // ເລກອ້າງອິງຮ້ານຄ້າ
+
   factory TransactionModel.fromJson(Map<String, dynamic> json) => TransactionModel(
         id: json['id'] as int,
         type: json['transaction_type']?.toString() ?? '',
@@ -27,6 +37,9 @@ class TransactionModel {
         reference: json['reference']?.toString(),
         description: json['description']?.toString(),
         createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+        referenceNo: json['reference_no']?.toString(),
+        invoiceNo: json['invoice_no']?.toString(),
+        merchantRefNo: json['merchant_ref_no']?.toString(),
       );
 
   String get typeLabel {
