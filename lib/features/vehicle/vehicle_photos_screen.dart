@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:showcaseview/showcaseview.dart';
 import '../../core/services/api_auth_service.dart';
 import '../../core/services/api_client.dart';
@@ -13,19 +11,15 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
 
-/// What tapping an empty tile should do — most categories come from a
-/// dedicated flow (inspection booking, road-tax payment) and aren't
-/// directly uploadable here; only these two accept a photo straight from
-/// the gallery screen.
-enum _UploadKind { vehicleFront, insuranceDocument }
-
-/// A single photo slot in the gallery grid.
+/// A single photo slot in the gallery grid. View-only — every photo here
+/// comes from its own dedicated flow (profile, vehicle registration,
+/// inspection booking, road-tax payment, insurance purchase); this screen
+/// never uploads anything itself.
 class _PhotoTile {
-  const _PhotoTile({required this.label, required this.icon, this.url, this.uploadKind});
+  const _PhotoTile({required this.label, required this.icon, this.url});
   final String label;
   final IconData icon;
   final String? url;
-  final _UploadKind? uploadKind;
   bool get hasPhoto => url != null && url!.isNotEmpty;
 }
 
@@ -47,7 +41,6 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
   List<Map<String, dynamic>> _inspections = [];
   List<Map<String, dynamic>> _insurances = [];
   bool _loading = true;
-  bool _uploading = false;
 
   static const _tourSeenPrefKey = 'vehicle_photos_tour_seen';
   final _tourKeyProgress = GlobalKey();
@@ -122,9 +115,7 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
     return null;
   }
 
-  /// Most recent insurance record for this vehicle (used both for the
-  /// existing document photo, and as the upload target when there isn't
-  /// one yet).
+  /// Most recent insurance record for this vehicle, for its document photo.
   Map<String, dynamic>? get _insuranceForVehicle {
     final vehicleId = widget.vehicle['id'];
     final matches = _insurances.where((i) => i['vehicle_id'].toString() == vehicleId.toString());
@@ -141,70 +132,24 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
     return [
       _PhotoTile(label: 'ໃບຂັບຂີ', icon: Icons.badge_outlined, url: licenseUrl),
       _PhotoTile(
-          label: 'ລົດ — ດ້ານໜ້າ',
-          icon: Icons.directions_car_filled_outlined,
-          url: frontPhotoUrl,
-          uploadKind: _UploadKind.vehicleFront),
+          label: 'ລົດ — ດ້ານໜ້າ', icon: Icons.directions_car_filled_outlined, url: frontPhotoUrl),
       _PhotoTile(label: 'ທະບຽນລົດ', icon: Icons.article_outlined, url: regFrontUrl),
       _PhotoTile(label: 'ປຶ້ມຄູ່ມືລົດ', icon: Icons.menu_book_outlined, url: regBackUrl),
       _PhotoTile(label: 'ສະຫຼາກກວດເຕັກນິກ', icon: Icons.fact_check_outlined, url: _inspectionStickerUrl),
       _PhotoTile(label: 'ໃບເສຍຄ່າທາງ', icon: Icons.receipt_long_outlined, url: _roadTaxProofUrl),
-      _PhotoTile(
-          label: 'ໃບປະກັນໄພ',
-          icon: Icons.shield_outlined,
-          url: insuranceDocUrl,
-          uploadKind: _UploadKind.insuranceDocument),
+      _PhotoTile(label: 'ໃບປະກັນໄພ', icon: Icons.shield_outlined, url: insuranceDocUrl),
     ];
   }
 
-  Future<void> _openTile(_PhotoTile tile) async {
-    if (tile.hasPhoto) {
-      showDialog(
-        context: context,
-        barrierColor: Colors.black87,
-        builder: (_) => _PhotoViewerDialog(url: tile.url!),
-      );
-      return;
-    }
-    if (tile.uploadKind == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('ກຳລັງພັດທະນາ')));
-      return;
-    }
-    if (tile.uploadKind == _UploadKind.insuranceDocument && _insuranceForVehicle == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ລົດຄັນນີ້ຍັງບໍ່ມີປະກັນໄພ — ຊື້ປະກັນໄພກ່ອນຈຶ່ງອັບໂຫລດຮູບໄດ້')));
-      return;
-    }
-    await _pickAndUpload(tile.uploadKind!);
-  }
-
-  Future<void> _pickAndUpload(_UploadKind kind) async {
-    final source = await showModalBottomSheet<ImageSource>(
+  // View-only — no photo is ever uploaded from this screen, only viewed
+  // full-screen if it already exists.
+  void _openTile(_PhotoTile tile) {
+    if (!tile.hasPhoto) return;
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ImageSourceSheet(),
+      barrierColor: Colors.black87,
+      builder: (_) => _PhotoViewerDialog(url: tile.url!),
     );
-    if (source == null) return;
-    final picked = await ImagePicker().pickImage(source: source, imageQuality: 85);
-    if (picked == null || !mounted) return;
-
-    setState(() => _uploading = true);
-    try {
-      if (kind == _UploadKind.vehicleFront) {
-        await ApiVehicleService.uploadFrontPhoto(widget.vehicle['id'], File(picked.path));
-      } else {
-        await ApiInsuranceService.uploadDocument(_insuranceForVehicle!['id'], File(picked.path));
-      }
-      await _loadData();
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('ອັບໂຫລດບໍ່ສຳເລັດ ກະລຸນາລອງໃໝ່')));
-      }
-    } finally {
-      if (mounted) setState(() => _uploading = false);
-    }
   }
 
   @override
@@ -231,47 +176,38 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
       ]),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : Stack(children: [
-              ListView(
-                padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
-                children: [
-                  Showcase(
-                    key: _tourKeyProgress,
-                    title: 'ຄວາມຄືບໜ້າ',
-                    description: 'ຕິດຕາມຈຳນວນຮູບເອກະສານທີ່ອັບໂຫລດແລ້ວທຽບກັບທັງໝົດ',
-                    targetBorderRadius: BorderRadius.circular(16),
-                    child: _progressCard(photoCount, tiles.length),
-                  ),
-                  for (var i = 0; i < tiles.length; i += 2) ...[
-                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Expanded(
-                          child: i == 0
-                              ? Showcase(
-                                  key: _tourKeyCard,
-                                  title: 'ບັດຮູບພາບ',
-                                  description:
-                                      'ກົດເພື່ອເບິ່ງຮູບ — ບາງໝວດກົດແລ້ວອັບໂຫລດຮູບໄດ້ທັນທີ ຖ້າຍັງບໍ່ມີ',
-                                  targetBorderRadius: BorderRadius.circular(14),
-                                  tooltipActions: CoachMarkTour.lastStepActions(context),
-                                  child: _photoCard(tiles[i]),
-                                )
-                              : _photoCard(tiles[i])),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: i + 1 < tiles.length
-                              ? _photoCard(tiles[i + 1])
-                              : const SizedBox.shrink()),
-                    ]),
-                    const SizedBox(height: 12),
-                  ],
-                ],
-              ),
-              if (_uploading)
-                Container(
-                  color: Colors.black26,
-                  child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
+              children: [
+                Showcase(
+                  key: _tourKeyProgress,
+                  title: 'ຄວາມຄືບໜ້າ',
+                  description: 'ຕິດຕາມຈຳນວນຮູບເອກະສານທີ່ມີທຽບກັບທັງໝົດ',
+                  targetBorderRadius: BorderRadius.circular(16),
+                  child: _progressCard(photoCount, tiles.length),
                 ),
-            ]),
+                for (var i = 0; i < tiles.length; i += 2) ...[
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Expanded(
+                        child: i == 0
+                            ? Showcase(
+                                key: _tourKeyCard,
+                                title: 'ບັດຮູບພາບ',
+                                description: 'ກົດຮູບທີ່ມີເພື່ອເບິ່ງເຕັມໜ້າຈໍ',
+                                targetBorderRadius: BorderRadius.circular(14),
+                                tooltipActions: CoachMarkTour.lastStepActions(context),
+                                child: _photoCard(tiles[i]),
+                              )
+                            : _photoCard(tiles[i])),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child:
+                            i + 1 < tiles.length ? _photoCard(tiles[i + 1]) : const SizedBox.shrink()),
+                  ]),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            ),
     );
   }
 
@@ -319,7 +255,7 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ອັບໂຫລດແລ້ວ $filled ຈາກ $total',
+              Text('ມີຮູບແລ້ວ $filled ຈາກ $total',
                   style: AppTextStyles.titleSmall.copyWith(fontSize: 14, fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
               Text(
@@ -372,14 +308,6 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFF16A34A))),
       );
     }
-    if (tile.uploadKind != null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(color: AppColors.primarySurface, borderRadius: BorderRadius.circular(8)),
-        child: const Text('ອັບໂຫລດ',
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.primary)),
-      );
-    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(8)),
@@ -393,8 +321,7 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
       return Container(
         color: AppColors.grey100,
         child: Center(
-          child: Icon(tile.uploadKind != null ? Icons.add_a_photo_outlined : tile.icon,
-              color: AppColors.grey300, size: 30),
+          child: Icon(tile.icon, color: AppColors.grey300, size: 30),
         ),
       );
     }
@@ -415,39 +342,6 @@ class _VehiclePhotosScreenState extends State<VehiclePhotosScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))),
             ),
-    );
-  }
-}
-
-/// Minimal camera-vs-gallery picker bottom sheet.
-class _ImageSourceSheet extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text('ເລືອກຮູບພາບ', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
-            title: const Text('ຖ່າຍຮູບໃໝ່'),
-            onTap: () => Navigator.of(context).pop(ImageSource.camera),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
-            title: const Text('ເລືອກຈາກຄັງຮູບ'),
-            onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-          ),
-          const SizedBox(height: 8),
-        ]),
-      ),
     );
   }
 }

@@ -6,7 +6,12 @@ import '../../core/widgets/widgets.dart';
 import '../../core/services/transaction_service.dart';
 
 final _money = NumberFormat('#,###');
-final _dateFmt = DateFormat('dd/MM/yyyy');
+final _timeFmt = DateFormat('HH:mm');
+
+const _laoMonths = [
+  'ມັງກອນ', 'ກຸມພາ', 'ມີນາ', 'ເມສາ', 'ພຶດສະພາ', 'ມິຖຸນາ',
+  'ກໍລະກົດ', 'ສິງຫາ', 'ກັນຍາ', 'ຕຸລາ', 'ພະຈິກ', 'ທັນວາ',
+];
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -41,6 +46,24 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         _ => AppColors.warning,
       };
 
+  MgBadgeVariant _badgeVariant(String status) => switch (status) {
+        'failed' => MgBadgeVariant.error,
+        _ => MgBadgeVariant.warning,
+      };
+
+  String _statusLabel(String status) => switch (status) {
+        'failed' => 'ລົ້ມເຫລວ',
+        _ => 'ລໍຖ້າ',
+      };
+
+  IconData _iconFor(String type) => switch (type) {
+        'road_tax' => Icons.article_outlined,
+        'insurance' => Icons.security_outlined,
+        'inspection' => Icons.fact_check_outlined,
+        'vehicle_fee' => Icons.directions_car_outlined,
+        _ => Icons.receipt_long_outlined,
+      };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,28 +90,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: AppColors.grey100, width: 1.5)),
-                        ),
-                        child: const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          Text('ລາຍການ',
-                              style: TextStyle(
-                                  fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.grey400)),
-                          Text('ຍອດເງິນ',
-                              style: TextStyle(
-                                  fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.grey400)),
-                        ]),
-                      ),
                       for (final entry in _grouped().entries) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 14, 4, 4),
-                          child: Text(entry.key,
-                              style: const TextStyle(
-                                  fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.grey500)),
-                        ),
-                        for (final t in entry.value) _row(t),
+                        _dateGroup(entry.key, entry.value),
+                        const SizedBox(height: 16),
                       ],
                     ],
                   ),
@@ -98,59 +102,95 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   /// Preserves the backend's created_at-desc ordering; just clusters
   /// consecutive same-day transactions under one date header.
-  Map<String, List<TransactionModel>> _grouped() {
-    final map = <String, List<TransactionModel>>{};
+  Map<DateTime, List<TransactionModel>> _grouped() {
+    final map = <DateTime, List<TransactionModel>>{};
     for (final t in _items) {
-      final key = _dateFmt.format(t.createdAt.toLocal());
+      final local = t.createdAt.toLocal();
+      final key = DateTime(local.year, local.month, local.day);
       (map[key] ??= []).add(t);
     }
     return map;
   }
 
+  String _dateLabel(DateTime d) => '${d.day} ${_laoMonths[d.month - 1]} ${d.year}';
+
+  Widget _dateGroup(DateTime date, List<TransactionModel> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.grey100),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 14, offset: const Offset(0, 4))],
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(_dateLabel(date),
+              style: AppTextStyles.titleSmall.copyWith(fontSize: 13.5, fontWeight: FontWeight.w800)),
+          Text('${items.length} ລາຍການ',
+              style: const TextStyle(fontSize: 11.5, color: AppColors.grey350, fontWeight: FontWeight.w600)),
+        ]),
+        const SizedBox(height: 8),
+        const Divider(color: AppColors.grey100, height: 1),
+        for (final t in items) _row(t),
+      ]),
+    );
+  }
+
   Widget _row(TransactionModel t) {
     final failed = t.status == 'failed';
-    final label = t.description?.isNotEmpty == true ? t.description! : t.typeLabel;
+    final success = t.status == 'success';
     return GestureDetector(
       onTap: () => Navigator.of(context).pushNamed('/transactions/detail', arguments: t),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: AppColors.grey100, width: 1)),
         ),
         child: Row(children: [
           Container(
-            width: 7,
-            height: 7,
-            margin: const EdgeInsets.only(right: 10),
-            decoration: BoxDecoration(color: _statusColor(t.status), shape: BoxShape.circle),
-          ),
-          Expanded(
-            child: RichText(
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              text: TextSpan(children: [
-                TextSpan(
-                    text: label,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.black)),
-                if (t.reference?.isNotEmpty == true)
-                  TextSpan(
-                      text: '  ·  ${t.reference}',
-                      style: const TextStyle(fontSize: 11.5, color: AppColors.grey350)),
-              ]),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: _statusColor(t.status).withAlpha(26),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(_iconFor(t.type), color: _statusColor(t.status), size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t.typeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.black)),
+              const SizedBox(height: 2),
+              Text(
+                [
+                  if (t.reference?.isNotEmpty == true) t.reference!,
+                  _timeFmt.format(t.createdAt.toLocal()),
+                ].join('  ·  '),
+                style: const TextStyle(fontSize: 11, color: AppColors.grey350),
+              ),
+            ]),
           ),
           const SizedBox(width: 8),
-          Text(
-            _money.format(t.amount),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: failed ? AppColors.error : AppColors.black,
-              decoration: failed ? TextDecoration.lineThrough : null,
-              decorationColor: AppColors.error,
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(
+              '${_money.format(t.amount)} ${success ? 'ກີບ' : ''}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: failed ? AppColors.error : AppColors.primary,
+                decoration: failed ? TextDecoration.lineThrough : null,
+                decorationColor: AppColors.error,
+              ),
             ),
-          ),
+            if (!success) ...[
+              const SizedBox(height: 4),
+              MgBadge(label: _statusLabel(t.status), variant: _badgeVariant(t.status)),
+            ],
+          ]),
         ]),
       ),
     );
