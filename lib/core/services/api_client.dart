@@ -32,13 +32,9 @@ class ApiClient {
       },
     ));
 
-    // 2. ปรับแต่ง HttpClient Adapter เพื่อป้องกัน SSL / Connection Reset บน Android Device
     dio.httpClientAdapter = IOHttpClientAdapter(
       createHttpClient: () {
         final client = HttpClient();
-        client.badCertificateCallback =
-            (X509Certificate cert, String host, int port) =>
-                true; // รองรับ SSL Certificate
         client.idleTimeout = const Duration(seconds: 60);
         return client;
       },
