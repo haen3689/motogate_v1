@@ -6,7 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class ApiClient {
   static const _baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://motogate-api.onrender.com/api/v1',
+    defaultValue:
+        'https://shiny-morning-e02b.finalfantasy199.workers.dev/api/v1',
   );
 
   static String get webBaseUrl =>
