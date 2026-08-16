@@ -60,7 +60,7 @@ class _ProfileMenuScreenState extends State<ProfileMenuScreen> {
                 _tile(Icons.settings_outlined, 'ການຕັ້ງຄ່າ',
                     () => Navigator.of(context).pushNamed('/settings')),
                 _tile(Icons.description_outlined, 'ເງື່ອນໄຂແລະຂໍ້ກຳນົດ',
-                    () => Navigator.of(context).pushNamed('/terms')),
+                    () => Navigator.of(context).pushNamed('/terms', arguments: {'readOnly': true})),
                 _tile(Icons.headset_mic_outlined, 'ສາຍດ່ວນ',
                     () => Navigator.of(context).pushNamed('/chat'), isLast: true),
               ]),

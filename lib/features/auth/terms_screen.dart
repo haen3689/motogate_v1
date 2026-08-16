@@ -4,7 +4,12 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/widgets/widgets.dart';
 
 class TermsScreen extends StatefulWidget {
-  const TermsScreen({super.key});
+  /// True when opened from the profile menu by an already-onboarded user
+  /// just re-reading the terms — shows a back button and skips the
+  /// accept-checkbox/continue footer meant for the signup flow.
+  final bool readOnly;
+
+  const TermsScreen({super.key, this.readOnly = false});
   @override
   State<TermsScreen> createState() => _TermsScreenState();
 }
@@ -16,7 +21,7 @@ class _TermsScreenState extends State<TermsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.white,
-      appBar: const MgHeader(title: 'ເງື່ອນໄຂການໃຊ້ງານ', showBack: false),
+      appBar: MgHeader(title: 'ເງື່ອນໄຂການໃຊ້ງານ', showBack: widget.readOnly),
       body: Column(
         children: [
           Expanded(
@@ -42,45 +47,46 @@ class _TermsScreenState extends State<TermsScreen> {
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 8, offset: const Offset(0, -2))],
-            ),
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: () => setState(() => _accepted = !_accepted),
-                  child: Row(
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: _accepted ? AppColors.primary : AppColors.grey100, width: 2),
-                          color: _accepted ? AppColors.primary : AppColors.white,
+          if (!widget.readOnly)
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                boxShadow: [BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 8, offset: const Offset(0, -2))],
+              ),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => _accepted = !_accepted),
+                    child: Row(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: _accepted ? AppColors.primary : AppColors.grey100, width: 2),
+                            color: _accepted ? AppColors.primary : AppColors.white,
+                          ),
+                          child: _accepted ? const Icon(Icons.check, size: 14, color: AppColors.white) : null,
                         ),
-                        child: _accepted ? const Icon(Icons.check, size: 14, color: AppColors.white) : null,
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(child: Text('ຂ້ອຍໄດ້ອ່ານ ແລະ ຍອມຮັບເງື່ອນໄຂການໃຊ້ງານ', style: AppTextStyles.bodyMedium)),
-                    ],
+                        const SizedBox(width: 12),
+                        const Expanded(child: Text('ຂ້ອຍໄດ້ອ່ານ ແລະ ຍອມຮັບເງື່ອນໄຂການໃຊ້ງານ', style: AppTextStyles.bodyMedium)),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                MgButton(
-                  label: 'ດຳເນີນການຕໍ່',
-                  variant: _accepted ? MgButtonVariant.primary : MgButtonVariant.disabled,
-                  onPressed: _accepted
-                      ? () => Navigator.of(context).pushNamedAndRemoveUntil('/profile/setup', (_) => false)
-                      : null,
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  MgButton(
+                    label: 'ດຳເນີນການຕໍ່',
+                    variant: _accepted ? MgButtonVariant.primary : MgButtonVariant.disabled,
+                    onPressed: _accepted
+                        ? () => Navigator.of(context).pushNamedAndRemoveUntil('/profile/setup', (_) => false)
+                        : null,
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

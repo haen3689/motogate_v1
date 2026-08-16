@@ -38,7 +38,6 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   static const _tourSeenPrefKey = 'documents_tour_seen';
   final _tourKeyCard = GlobalKey();
-  final _tourKeyStatus = GlobalKey();
   final _tourKeyQr = GlobalKey();
 
   bool get _singleVehicleMode => widget.vehicle != null;
@@ -54,7 +53,7 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
 
   void _startTour() {
     if (!mounted) return;
-    ShowCaseWidget.of(context).startShowCase([_tourKeyCard, _tourKeyStatus, _tourKeyQr]);
+    ShowCaseWidget.of(context).startShowCase([_tourKeyCard, _tourKeyQr]);
   }
 
   Future<void> _load() async {
@@ -317,52 +316,77 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _error != null
               ? _message(_error!, retry: _load)
-              : RefreshIndicator(
-                  color: AppColors.primary,
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
-                    children: [
-                      _licenseRow(),
-                      const SizedBox(height: 12),
-                      for (final v in _sortedVehicles) ...[
-                        _vehicleRegRow(v),
-                        const SizedBox(height: 14),
+              : Builder(builder: (context) {
+                  final license = _licenseRow();
+                  final registrations = [for (final v in _sortedVehicles) _vehicleRegRow(v)];
+                  final inspections = [for (final v in _sortedVehicles) _inspectionRow(v)];
+                  final roadTaxes = [for (final v in _sortedVehicles) _roadTaxRow(v)];
+                  final insurances = [for (final v in _sortedVehicles) _insuranceRow(v)];
+                  final all = [license, ...registrations, ...inspections, ...roadTaxes, ...insurances];
+                  final validCount = all.where((e) => e.status == _DocStatus.valid).length;
+
+                  return RefreshIndicator(
+                    color: AppColors.primary,
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
+                      children: [
+                        _summaryBanner(validCount, all.length),
+                        const SizedBox(height: 16),
+                        license.widget,
+                        const SizedBox(height: 12),
+                        for (final e in registrations) ...[e.widget, const SizedBox(height: 14)],
+                        for (final e in inspections) ...[e.widget, const SizedBox(height: 14)],
+                        for (final e in roadTaxes) ...[e.widget, const SizedBox(height: 14)],
+                        for (final e in insurances) ...[e.widget, const SizedBox(height: 14)],
+                        if (_vehicles.isEmpty) _emptyVehicles(),
+                        const SizedBox(height: 10),
+                        _qrBanner(),
                       ],
-                      for (final v in _sortedVehicles) ...[
-                        _inspectionRow(v),
-                        const SizedBox(height: 14),
-                      ],
-                      for (final v in _sortedVehicles) ...[
-                        _roadTaxRow(v),
-                        const SizedBox(height: 14),
-                      ],
-                      for (final v in _sortedVehicles) ...[
-                        _insuranceRow(v),
-                        const SizedBox(height: 14),
-                      ],
-                      if (_vehicles.isEmpty) _emptyVehicles(),
-                      const SizedBox(height: 10),
-                      _qrBanner(),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                }),
+    );
+  }
+
+  Widget _summaryBanner(int validCount, int total) {
+    final allValid = total > 0 && validCount == total;
+    final color = allValid ? const Color(0xFF16A34A) : const Color(0xFFDC2626);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Row(children: [
+        Icon(allValid ? Icons.verified_outlined : Icons.report_gmailerrorred_outlined,
+            color: Colors.white, size: 30),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(allValid ? 'ເອກະສານຄົບຖ້ວນ' : 'ມີເອກະສານທີ່ຕ້ອງແກ້ໄຂ',
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text('ຜ່ານ $validCount / $total ລາຍການ',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13)),
+          ]),
+        ),
+      ]),
     );
   }
 
   // ── Rows ──────────────────────────────────────────────────────────────────
 
-  Widget _licenseRow() {
+  ({Widget widget, _DocStatus status}) _licenseRow() {
     final expiry = _user?['license_expiry_date']?.toString();
     final status = _statusFromExpiry(expiry);
     final imageUrl = _user?['license_image_url']?.toString();
     final licenseName = _user?['license_name']?.toString();
-    return _docRow(
-      mock: _mockCard(
-          bgColor: const Color(0xFF0F5A96),
-          bandColor: const Color(0xFF0A3C6C),
-          bandLabel: 'ໃບຂັບຂີ່',
-          icon: Icons.person),
+    final widget = _docRow(
+      icon: Icons.person,
+      iconColor: const Color(0xFF0A3C6C),
+      category: 'ໃບຂັບຂີ່',
       title: licenseName?.isNotEmpty == true ? licenseName! : 'ໃບຂັບຂີ່',
       line1: _user?['license_type'] != null ? 'ປະເພດ: ${_user?['license_type']}' : '',
       line2: expiry != null ? 'ໝົດອາຍຸ: ${_formatDate(expiry)}' : 'ຍັງບໍ່ໄດ້ຕື່ມຂໍ້ມູນ',
@@ -372,29 +396,27 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           : Navigator.of(context).pushNamed('/license/setup'),
       cardTourKey: _tourKeyCard,
       cardTourTitle: 'ບັດເອກະສານ',
-      cardTourDescription: 'ແຕ່ລະບັດແມ່ນເອກະສານໜຶ່ງປະເພດ — ກົດເພື່ອເບິ່ງຮູບ ຫຼື ຕື່ມຂໍ້ມູນທີ່ຍັງຂາດ',
-      statusTourKey: _tourKeyStatus,
-      statusTourTitle: 'ສະຖານະເອກະສານ',
-      statusTourDescription: '✓ ສີຂຽວ = ຖືກຕ້ອງ, ✕ ສີແດງ = ໝົດອາຍຸ, ! ສີເຫຼືອງ = ຍັງບໍ່ມີຂໍ້ມູນ',
+      cardTourDescription:
+          'ແຕ່ລະບັດແມ່ນເອກະສານໜຶ່ງປະເພດ — ສີການ໌ດ ບອກສະຖານະ (ຂຽວ=ຖືກຕ້ອງ, ແດງ=ໝົດອາຍຸ, ເຫຼືອງ=ຍັງບໍ່ມີຂໍ້ມູນ), ກົດເພື່ອເບິ່ງຮູບ ຫຼື ຕື່ມຂໍ້ມູນທີ່ຍັງຂາດ',
     );
+    return (widget: widget, status: status);
   }
 
-  Widget _vehicleRegRow(Map<String, dynamic> v) {
+  ({Widget widget, _DocStatus status}) _vehicleRegRow(Map<String, dynamic> v) {
     final plate = v['plate_number']?.toString();
     final ownerName = v['owner_name']?.toString();
     final frontUrl = v['registration_front_url']?.toString();
     final backUrl = v['registration_back_url']?.toString();
     final hasDocs = (frontUrl?.isNotEmpty ?? false) || (backUrl?.isNotEmpty ?? false);
-    return _docRow(
-      mock: _mockCard(
-          bgColor: const Color(0xFFC7DEEB),
-          bandColor: const Color(0xFF5C8BAE),
-          bandLabel: 'ໃບທະບຽນລົດ',
-          icon: Icons.directions_car),
+    final status = hasDocs ? _DocStatus.valid : _DocStatus.missing;
+    final widget = _docRow(
+      icon: Icons.directions_car,
+      iconColor: const Color(0xFF5C8BAE),
+      category: 'ໃບທະບຽນລົດ',
       title: ownerName?.isNotEmpty == true ? ownerName! : 'ທະບຽນລົດ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
       line2: hasDocs ? '' : 'ຍັງບໍ່ໄດ້ຕື່ມຂໍ້ມູນ',
-      status: hasDocs ? _DocStatus.valid : _DocStatus.missing,
+      status: status,
       onTap: () => (frontUrl != null && frontUrl.isNotEmpty)
           ? _viewImage(frontUrl)
           : _showNoDocumentModal(
@@ -402,9 +424,10 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
               message: 'ອັບໂຫລດຮູບໃບທະບຽນລົດ (ໜ້າ) ໄດ້ທີ່ໜ້າລາຍລະອຽດລົດ',
             ),
     );
+    return (widget: widget, status: status);
   }
 
-  Widget _inspectionRow(Map<String, dynamic> v) {
+  ({Widget widget, _DocStatus status}) _inspectionRow(Map<String, dynamic> v) {
     final record = _latestFor(_inspections, v['id']);
     final recordStatus = record?['status']?.toString();
     final status = recordStatus == 'completed'
@@ -418,12 +441,10 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     final stickerUrl =
         stickerPath != null && stickerPath.isNotEmpty ? '${ApiClient.webBaseUrl}$stickerPath' : null;
     final appointmentText = 'ວັນທີ: ${_formatDate(record?['appointment_at']?.toString()) ?? '-'}';
-    return _docRow(
-      mock: _mockCard(
-          bgColor: const Color(0xFF2AB659),
-          bandColor: const Color(0xFF1A8C47),
-          bandLabel: 'ກວດກາເຕັກນິກ',
-          icon: Icons.fact_check_outlined),
+    final widget = _docRow(
+      icon: Icons.fact_check_outlined,
+      iconColor: const Color(0xFF1A8C47),
+      category: 'ກວດກາເຕັກນິກ',
       title: stickerNumber?.isNotEmpty == true ? stickerNumber! : 'ກວດກາເຕັກນິກ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
       line2: record == null
@@ -439,21 +460,20 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
               message: 'ຮູບສະຕິກເກີ້ (ຫຼັກຖານກວດແລ້ວ) ຈະຖືກອັບໂຫລດໂດຍສູນກວດສະພາບລົດ',
             ),
     );
+    return (widget: widget, status: status);
   }
 
-  Widget _roadTaxRow(Map<String, dynamic> v) {
+  ({Widget widget, _DocStatus status}) _roadTaxRow(Map<String, dynamic> v) {
     final record = _latestFor(_roadTaxes, v['id']);
     final expiry = record?['expired_at']?.toString();
     final status = _statusFromExpiry(expiry);
     final plate = v['plate_number']?.toString();
     final proofUrl = record?['proof_image_url']?.toString();
     final taxYear = record?['tax_year']?.toString();
-    return _docRow(
-      mock: _mockCard(
-          bgColor: const Color(0xFF0F9B8E),
-          bandColor: const Color(0xFF0A7E72),
-          bandLabel: 'ຄ່າທາງ',
-          icon: Icons.receipt_long_outlined),
+    final widget = _docRow(
+      icon: Icons.receipt_long_outlined,
+      iconColor: const Color(0xFF0A7E72),
+      category: 'ຄ່າທາງ',
       title: taxYear?.isNotEmpty == true ? 'ຄ່າທາງ ປີ $taxYear' : 'ຄ່າທາງ',
       line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
       line2: expiry != null ? 'ໝົດອາຍຸ: ${_formatDate(expiry)}' : 'ຍັງບໍ່ໄດ້ຈ່າຍຄ່າທາງ',
@@ -467,23 +487,24 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                   : 'ລາຍການນີ້ຈ່າຍຜ່ານແອບ ບໍ່ມີຮູບຫຼັກຖານແຍກຕ່າງຫາກ',
             ),
     );
+    return (widget: widget, status: status);
   }
 
-  Widget _insuranceRow(Map<String, dynamic> v) {
+  ({Widget widget, _DocStatus status}) _insuranceRow(Map<String, dynamic> v) {
     final record = _latestFor(_insurances, v['id'], dateKey: 'start_date');
     final expiry = record?['end_date']?.toString();
     final status = _statusFromExpiry(expiry);
     final plate = v['plate_number']?.toString();
     final docUrl = record?['document_image_url']?.toString();
     final certNo = record?['certificate_number']?.toString();
-    return _docRow(
-      mock: _mockCard(
-          bgColor: const Color(0xFF0F5A96),
-          bandColor: const Color(0xFF0A3C6C),
-          bandLabel: (record?['company']?.toString() ?? 'ປະກັນໄພ').toUpperCase(),
-          icon: Icons.shield_outlined),
+    final company = record?['company']?.toString();
+    final widget = _docRow(
+      icon: Icons.shield_outlined,
+      iconColor: const Color(0xFF6D28D9),
+      category: 'ປະກັນໄພ',
       title: certNo ?? 'ປະກັນໄພ',
-      line1: 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}',
+      line1: [if (company?.isNotEmpty == true) company!, 'ທະບຽນ: ${plate?.isNotEmpty == true ? plate! : '-'}']
+          .join(' · '),
       line2: expiry != null ? 'ໝົດອາຍຸ: ${_formatDate(expiry)}' : 'ຍັງບໍ່ມີປະກັນໄພ',
       status: status,
       onTap: () => (docUrl != null && docUrl.isNotEmpty)
@@ -495,12 +516,15 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
                   : 'ອັບໂຫລດຮູບໃບຢັ້ງຢືນປະກັນໄພໄດ້ທີ່ໜ້າລາຍລະອຽດປະກັນໄພ',
             ),
     );
+    return (widget: widget, status: status);
   }
 
   // ── Building blocks ───────────────────────────────────────────────────────
 
   Widget _docRow({
-    required Widget mock,
+    required IconData icon,
+    required Color iconColor,
+    required String category,
     required String title,
     required String line1,
     required String line2,
@@ -509,74 +533,62 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
     GlobalKey? cardTourKey,
     String? cardTourTitle,
     String? cardTourDescription,
-    GlobalKey? statusTourKey,
-    String? statusTourTitle,
-    String? statusTourDescription,
   }) {
-    const cardHeight = 122.0;
-    final statusWidget = _statusIcon(status);
     final card = GestureDetector(
       onTap: onTap,
       child: Container(
-        height: cardHeight,
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _statusBgColor(status),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _statusColor(status).withValues(alpha: 0.22)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4)),
           ],
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          SizedBox(width: 140, height: cardHeight, child: mock),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: iconColor, borderRadius: BorderRadius.circular(13)),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.titleSmall.copyWith(fontSize: 17, fontWeight: FontWeight.w800)),
-                  if (line1.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Text(line1,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
-                  ],
-                  if (line2.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(line2,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.caption.copyWith(fontSize: 13.5)),
-                  ],
-                  const SizedBox(height: 7),
-                  Text('status: ${_statusLabel(status)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _statusColor(status))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.caption.copyWith(
+                        fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.2)),
+                const SizedBox(height: 2),
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.titleSmall.copyWith(fontSize: 16, fontWeight: FontWeight.w800)),
+                if (line1.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(line1, maxLines: 1, style: AppTextStyles.caption.copyWith(fontSize: 13)),
+                  ),
                 ],
-              ),
+                if (line2.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(line2, maxLines: 1, style: AppTextStyles.caption.copyWith(fontSize: 13)),
+                  ),
+                ],
+              ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: statusTourKey == null
-                  ? statusWidget
-                  : Showcase(
-                      key: statusTourKey,
-                      title: statusTourTitle ?? '',
-                      description: statusTourDescription ?? '',
-                      targetShapeBorder: const CircleBorder(),
-                      child: statusWidget,
-                    ),
-            ),
-          ),
+          const SizedBox(width: 8),
+          _statusPill(status),
         ]),
       ),
     );
@@ -592,53 +604,26 @@ class _DocumentListScreenState extends State<DocumentListScreen> {
           );
   }
 
-  Widget _statusIcon(_DocStatus status) {
-    final (bg, fg, icon) = switch (status) {
-      _DocStatus.valid => (const Color(0xFFE0F7E9), const Color(0xFF009951), Icons.check),
-      _DocStatus.expired => (const Color(0xFFFCE0E0), const Color(0xFFCC1010), Icons.close),
-      _DocStatus.missing => (const Color(0xFFFEF3C7), const Color(0xFFCA8A04), Icons.priority_high),
-    };
+  Widget _statusPill(_DocStatus status) {
+    final fg = _statusColor(status);
     return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-      child: Icon(icon, color: fg, size: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: fg.withValues(alpha: 0.4)),
+      ),
+      child: Text(_statusLabel(status),
+          maxLines: 1,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: fg)),
     );
   }
 
-  /// Small colored "document type" mockup card (not a real photo) — a quick
-  /// visual identifier per category, matching the Figma reference's color
-  /// story without needing the user's actual uploaded scan.
-  Widget _mockCard({
-    required Color bgColor,
-    required Color bandColor,
-    required String bandLabel,
-    IconData? icon,
-    String? bigText,
-  }) {
-    return Container(
-      color: bgColor,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Container(
-          color: bandColor,
-          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 6),
-          child: Text(bandLabel,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w800)),
-        ),
-        Expanded(
-          child: Center(
-            child: bigText != null && bigText.isNotEmpty
-                ? Text(bigText,
-                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900))
-                : Icon(icon ?? Icons.description_outlined, color: Colors.white.withValues(alpha: 0.9), size: 36),
-          ),
-        ),
-      ]),
-    );
-  }
+  Color _statusBgColor(_DocStatus s) => switch (s) {
+        _DocStatus.valid => const Color(0xFFE0F7E9),
+        _DocStatus.expired => const Color(0xFFFCE0E0),
+        _DocStatus.missing => const Color(0xFFFEF3C7),
+      };
 
   Widget _qrBanner() => Showcase(
         key: _tourKeyQr,

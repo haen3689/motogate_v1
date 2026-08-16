@@ -63,7 +63,8 @@ class AppRouter {
       case '/otp':
         return _r(const OtpScreen(), s);
       case '/terms':
-        return _r(const TermsScreen(), s);
+        final args = s.arguments as Map<String, dynamic>?;
+        return _r(TermsScreen(readOnly: args?['readOnly'] as bool? ?? false), s);
       case '/profile/setup':
         return _r(const ProfileSetupScreen(), s);
       case '/license/setup':

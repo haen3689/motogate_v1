@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
@@ -64,145 +65,32 @@ class HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() => _ads = ads);
   }
 
-  /// Shows admin-managed ads (ຈັດການໂຄສະນາ) as a stack of dismissible popup
-  /// dialogs on home load, one at a time, instead of the old swipeable
-  /// banner. Checking "don't show again" stops the whole queue and is
-  /// remembered until the next fresh login (see AdPopupPrefs).
+  /// Shows admin-managed ads (ຈັດການໂຄສະນາ) as a single swipeable popup on
+  /// home load — one dialog, all ads as horizontally-swipeable pages, so
+  /// the user can flip through them like a carousel instead of closing and
+  /// reopening a dialog per ad. Checking "don't show again" is remembered
+  /// until the next fresh login (see AdPopupPrefs).
   Future<void> _maybeShowAdPopups() async {
     if (_ads.isEmpty) return;
     if (await AdPopupPrefs.isDismissed()) return;
+    if (!mounted) return;
 
-    for (final ad in _ads) {
-      if (!mounted) return;
-      final dontShowAgain = await _showAdPopup(ad);
-      if (dontShowAgain) {
-        await AdPopupPrefs.dismiss();
-        break;
-      }
-    }
-  }
-
-  Future<bool> _showAdPopup(Advertisement ad) async {
-    final imagePath = ad.imageUrl;
-    final imageUrl = (imagePath != null && imagePath.isNotEmpty) ? '${ApiClient.webBaseUrl}$imagePath' : null;
-    bool dontShowAgain = false;
-
-    final closedWithDontShowAgain = await showDialog<bool>(
+    final dontShowAgain = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) {
-        // Fractions of the current device's screen, so the popup scales to
-        // fit phones of any size instead of a fixed pixel box.
-        final screen = MediaQuery.of(ctx).size;
-        final safePadding = MediaQuery.of(ctx).padding;
-        final maxHeight = screen.height - safePadding.top - safePadding.bottom - 32;
-
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) => Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: EdgeInsets.symmetric(horizontal: screen.width * 0.045, vertical: 16),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: screen.width),
-              child: Container(
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          if (imageUrl != null)
-                            Image.network(imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(color: AppColors.primaryLight))
-                          else
-                            Container(color: AppColors.primaryLight),
-                          Positioned(
-                            top: 12,
-                            right: 12,
-                            child: GestureDetector(
-                              onTap: () => Navigator.of(ctx).pop(dontShowAgain),
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                alignment: Alignment.center,
-                                decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
-                                child: const Icon(Icons.close, color: Colors.white, size: 20),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(ad.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF1A1A1A))),
-                          if (ad.subtitle != null && ad.subtitle!.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(ad.subtitle!,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
-                          ],
-                          const SizedBox(height: 16),
-                          if (ad.linkUrl != null && ad.linkUrl!.isNotEmpty)
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                                onPressed: () {
-                                  Navigator.of(ctx).pop(dontShowAgain);
-                                  _openAd(ad);
-                                },
-                                child: const Text('ເບິ່ງລາຍລະອຽດ', style: TextStyle(fontWeight: FontWeight.w700)),
-                              ),
-                            ),
-                          const SizedBox(height: 10),
-                          InkWell(
-                            onTap: () => setDialogState(() => dontShowAgain = !dontShowAgain),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Checkbox(
-                                  value: dontShowAgain,
-                                  onChanged: (v) => setDialogState(() => dontShowAgain = v ?? false),
-                                  visualDensity: VisualDensity.compact,
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                const SizedBox(width: 4),
-                                const Expanded(
-                                  child: Text('ບໍ່ຕ້ອງສະແດງອີກ ຈົນກວ່າຈະເຂົ້າສູ່ລະບົບໃໝ່',
-                                      style: TextStyle(fontSize: 12.5, color: Color(0xFF6B7280))),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 320),
+      pageBuilder: (ctx, __, ___) => _AdPopup(ads: _ads, onOpenAd: _openAd),
+      transitionBuilder: (ctx, animation, __, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(scale: Tween(begin: 0.9, end: 1.0).animate(curved), child: child),
         );
       },
     );
 
-    return closedWithDontShowAgain ?? false;
+    if (dontShowAgain ?? false) await AdPopupPrefs.dismiss();
   }
 
   Future<void> _openAd(Advertisement ad) async {
@@ -545,4 +433,278 @@ class HomeScreenState extends State<HomeScreen> {
           ],
         ),
       );
+}
+
+/// One dialog for the whole ad queue — a horizontally swipeable carousel
+/// (instead of a dialog-per-ad stack) so the user can flip between ads
+/// without closing and reopening the popup. Pops `true` if "don't show
+/// again" was checked when dismissed.
+class _AdPopup extends StatefulWidget {
+  final List<Advertisement> ads;
+  final void Function(Advertisement) onOpenAd;
+
+  const _AdPopup({required this.ads, required this.onOpenAd});
+
+  @override
+  State<_AdPopup> createState() => _AdPopupState();
+}
+
+class _AdPopupState extends State<_AdPopup> {
+  static const _autoAdvanceInterval = Duration(seconds: 4);
+
+  final _pageController = PageController();
+  int _page = 0;
+  bool _dontShowAgain = false;
+  Timer? _autoAdvanceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoAdvance();
+  }
+
+  // Only worth auto-advancing when there's more than one ad to cycle
+  // through; restarted on every page change (manual swipe or auto) so the
+  // interval always counts from when a page last became visible.
+  void _startAutoAdvance() {
+    _autoAdvanceTimer?.cancel();
+    if (widget.ads.length <= 1) return;
+    _autoAdvanceTimer = Timer.periodic(_autoAdvanceInterval, (_) {
+      // Always step to the next raw page index (never back to 0) so the
+      // carousel keeps sliding the same direction — 1→2→3→1→2→3 — instead
+      // of animating backwards when it wraps past the last ad. `_page` is
+      // an unbounded index; the actual ad is `_page % widget.ads.length`
+      // (see `_adIndex`), and the PageView itself has no fixed itemCount
+      // so it can keep building "past the end" forever.
+      _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoAdvanceTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  // `_page` is the raw, unbounded PageView index (can exceed widget.ads
+  // length, or go negative from a manual backward swipe past the start) —
+  // this maps it back to the actual ad via Dart's always-non-negative `%`.
+  int get _adIndex => _page % widget.ads.length;
+
+  @override
+  Widget build(BuildContext context) {
+    final ad = widget.ads[_adIndex];
+    final hasLink = ad.linkUrl != null && ad.linkUrl!.isNotEmpty;
+
+    // Fractions of the current device's screen, so the popup scales to fit
+    // phones of any size instead of a fixed pixel box.
+    final screen = MediaQuery.of(context).size;
+    final safePadding = MediaQuery.of(context).padding;
+    final maxHeight = screen.height - safePadding.top - safePadding.bottom - 32;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(horizontal: screen.width * 0.045, vertical: 16),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight, maxWidth: screen.width),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 32, offset: const Offset(0, 14)),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PageView.builder(
+                      controller: _pageController,
+                      // Unbounded (null) when there's more than one ad, so
+                      // the index can keep climbing past widget.ads.length
+                      // forever instead of being clamped at the last page —
+                      // that's what lets auto-advance and forward swipes
+                      // wrap around as 1→2→3→1→2→3 instead of bouncing
+                      // back to page 0.
+                      itemCount: widget.ads.length > 1 ? null : 1,
+                      onPageChanged: (i) {
+                        setState(() => _page = i);
+                        _startAutoAdvance();
+                      },
+                      itemBuilder: (_, i) {
+                        final path = widget.ads[i % widget.ads.length].imageUrl;
+                        final url = (path != null && path.isNotEmpty) ? '${ApiClient.webBaseUrl}$path' : null;
+                        // `contain` (not `cover`) so a landscape ad image is
+                        // never cropped at the sides to fill this portrait
+                        // slot — any leftover space letterboxes against the
+                        // same fallback color instead of losing part of the
+                        // image.
+                        return Container(
+                          color: AppColors.primaryLight,
+                          child: url != null
+                              ? Image.network(url,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => Container(color: AppColors.primaryLight))
+                              : null,
+                        );
+                      },
+                    ),
+                    Positioned(
+                      top: 14,
+                      left: 14,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text('ໂຄສະນາ',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+                      ),
+                    ),
+                    Positioned(
+                      top: 14,
+                      right: 14,
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(context).pop(_dontShowAgain),
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 8, offset: const Offset(0, 2)),
+                            ],
+                          ),
+                          child: const Icon(Icons.close_rounded, color: AppColors.black, size: 19),
+                        ),
+                      ),
+                    ),
+                    if (widget.ads.length > 1)
+                      Positioned(
+                        bottom: 12,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (int i = 0; i < widget.ads.length; i++)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.symmetric(horizontal: 3),
+                                width: i == _adIndex ? 18 : 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: i == _adIndex ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(ad.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.black)),
+                    if (ad.subtitle != null && ad.subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(ad.subtitle!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13.5, color: AppColors.grey600, height: 1.4)),
+                    ],
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: hasLink
+                              ? const LinearGradient(colors: [AppColors.primary, AppColors.primaryDark])
+                              : null,
+                          color: hasLink ? null : AppColors.grey50,
+                          border: hasLink ? null : Border.all(color: AppColors.grey100, width: 1.5),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: hasLink
+                              ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.32), blurRadius: 16, offset: const Offset(0, 6))]
+                              : null,
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(30),
+                            onTap: () {
+                              Navigator.of(context).pop(_dontShowAgain);
+                              if (hasLink) widget.onOpenAd(ad);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(hasLink ? 'ເບິ່ງລາຍລະອຽດ' : 'ຮັບຊາບແລ້ວ',
+                                      style: TextStyle(
+                                          color: hasLink ? Colors.white : AppColors.grey900,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15)),
+                                  if (hasLink) ...[
+                                    const SizedBox(width: 6),
+                                    const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () => setState(() => _dontShowAgain = !_dontShowAgain),
+                      child: Row(
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: _dontShowAgain ? AppColors.primary : AppColors.grey200, width: 2),
+                              color: _dontShowAgain ? AppColors.primary : AppColors.white,
+                            ),
+                            child: _dontShowAgain ? const Icon(Icons.check, size: 13, color: AppColors.white) : null,
+                          ),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text('ບໍ່ຕ້ອງສະແດງອີກ ຈົນກວ່າຈະເຂົ້າສູ່ລະບົບໃໝ່',
+                                style: TextStyle(fontSize: 12.5, color: AppColors.grey600)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
